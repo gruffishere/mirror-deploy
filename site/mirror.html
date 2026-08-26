@@ -35,7 +35,8 @@ a{color:inherit}
    text. The FACETS site never puts it on the dark either: its wordmark sits inside a coloured block.
    So the real colour is kept and the ground under it changes, exactly as the site does it. */
 .mark{display:flex;align-items:center;gap:14px;margin-bottom:26px}
-.wm{background:var(--paper);border-radius:8px;padding:7px 14px 9px;display:inline-block}
+.wm{background:var(--paper);border-radius:8px;padding:7px 14px 9px;display:inline-block;
+  text-decoration:none}   /* it is a link home now, and a link that looks underlined is not a mark */
 .wm b{display:block;font:800 clamp(26px,3.2vw,44px)/.86 var(--disp);letter-spacing:-.05em;
   color:#0101ef}
 .mark .sub{font:800 11px/1 var(--mono);letter-spacing:.42em;color:var(--dim)}
@@ -209,7 +210,7 @@ footer p{margin:0 0 9px;max-width:80ch}
 
 <div class="wrap">
   <section class="hero">
-    <div class="mark"><span class="wm"><b>FACETS</b></span><span class="sub">THE MIRROR</span><a class="signedlink" href="/signed">SIGNED WALLETS</a></div>
+    <div class="mark"><a class="wm" href="/" title="THE MIRROR"><b>FACETS</b></a><span class="sub">THE MIRROR</span><a class="signedlink" href="/signed">SIGNED WALLETS</a></div>
     <div class="heroin"><div class="col">
     <h1>Who are you<br>on chain?</h1>
     <p class="lede">Paste a wallet. It gets read against <b>5,000 real Ethereum wallets</b> and comes
@@ -285,11 +286,18 @@ async function read(addr) {
   // ⚠️ THE QUEUE HAS TO BE VISIBLE. The server takes one uncached address at a time and a read can
   // run to twenty seconds, so without this a real answer on its way is indistinguishable from a dead
   // site. /api/status is free and never queues.
-  let ticks = 0;
+  // ⚠️ clearInterval CANNOT RECALL A TICK THAT IS ALREADY IN THE AIR.
+  // This callback awaits /api/status before it writes, so a cached read finishing in the same
+  // second let the reply land afterwards and paint 'reading the chain' back over a finished card.
+  // That is why it always froze at 1s: it was the first tick, still in flight. The flag is checked
+  // AFTER the await, which is the only place that catches it.
+  let ticks = 0, done = false;
+  const stop = () => { done = true; clearInterval(poll); };
   poll = setInterval(async () => {
     ticks++;
     try {
       const s = await (await fetch(API + '/api/status')).json();
+      if (done) return;
       say('<span class="bar"></span>' + (s.queue > 1
         ? 'reading the chain &middot; ' + s.queue + ' wallets in the queue'
         : 'reading the chain &middot; ' + ticks + 's') +
@@ -300,7 +308,7 @@ async function read(addr) {
   try {
     const r = await fetch(API + '/api/read?addr=' + encodeURIComponent(addr));
     const j = await r.json();
-    clearInterval(poll);
+    stop();
     $('#go').disabled = false;
     if (!r.ok || j.error) return say(j.error || ('something went wrong (' + r.status + ')'), true);
     DATA = j; ADDR = j.signals.addr;
@@ -309,7 +317,7 @@ async function read(addr) {
     say(j.cached ? '' : '');
     show();
   } catch (e) {
-    clearInterval(poll);
+    stop();
     $('#go').disabled = false;
     say('could not reach the reader', true);
   }

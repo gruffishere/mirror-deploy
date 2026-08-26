@@ -454,7 +454,7 @@ function L2b(v) {
   '<div class="abs" style="left:66cqw;width:30cqw;top:4.6cqw;text-align:right;color:#fff">' +
     '<div style="height:6.6cqw;display:flex;align-items:flex-end;justify-content:flex-end;overflow:visible">' +
       (v.signed
-        ? '<div class="sign rbtext" style="font-size:2.9cqw;line-height:1;white-space:nowrap;' +
+        ? '<div class="sign rbtext" style="font-size:4.2cqw;line-height:1;white-space:nowrap;' +
             'transform:rotate(-8deg) translate(-.4cqw,-.7cqw)">approved by facets</div>'
         : '') +
     '</div>' +
