@@ -1,0 +1,27 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/cards/faz1.css">
+<style>
+html,body{margin:0;background:#0b0b0e;color:#e9e9ef;font-family:var(--disp)}
+.wrap{container-type:inline-size;width:1560px;padding:24px 30px 34px}
+.row{display:flex;align-items:flex-end;gap:40px;padding:16px 0;border-bottom:1px solid #191920}
+.lab{width:120px;flex:0 0 auto;font:800 11px/1 var(--mono);letter-spacing:.18em;color:#6f6f7c}
+.cell{flex:0 0 auto;width:520px}
+.t{font:800 9px/1 var(--mono);letter-spacing:.2em;color:#45454f;margin-bottom:10px}
+h1{font:800 12px/1 var(--mono);letter-spacing:.28em;color:#9a9aa8;margin:0 0 14px}
+</style>
+<div class="wrap"><h1>WHAT SITS UNDER THE WORD</h1><div id="o"></div></div>
+<script src="/cards/facetword.js"></script>
+<script>
+const PLATE = { BUILDER:['COLLECTOR','DEGEN'], DEGEN:['COLLECTOR','BUILDER'],
+  WHALE:['COLLECTOR','DEGEN'], NEWBIE:['COLLECTOR','DEGEN'],
+  COLLECTOR:['BUILDER','DEGEN'], OG:['COLLECTOR','DEGEN'], GHOST:['DEGEN','COLLECTOR'] };
+const T = window.FACETWORD.T;
+let html = '';
+for (const f of ['BUILDER','COLLECTOR','DEGEN','NEWBIE','WHALE','OG','GHOST']) {
+  const lit = 'var(--' + f + '-lit)';
+  const plate = 'var(--' + PLATE[f][0] + '-lit)';
+  html += '<div class="row"><div class="lab">' + f + '<br><span style="color:#3a3a44">on ' + PLATE[f][0] + '</span></div>' +
+    '<div class="cell"><div class="t">SOLID</div>' + T.solid(f, lit, plate, null, 22) + '</div>' +
+    '<div class="cell"><div class="t">TWO PLATE</div>' + T.riso(f, lit, plate, null, 22) + '</div></div>';
+}
+document.getElementById('o').innerHTML = html;
+</script>

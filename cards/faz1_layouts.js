@@ -20,10 +20,24 @@ const num = n => n.toLocaleString('en-US');            // pinned: this machine r
 
 // Everything a card needs, derived once. `signed` decides identity and nothing else.
 const GREY_FACETS = ['OG', 'GHOST'];
-const VIVID_FACETS = ['NEWBIE', 'COLLECTOR', 'DEGEN', 'BUILDER', 'WHALE'];
-function plateColour(addr, dom, runnerUp) {
-  if (GREY_FACETS.indexOf(runnerUp) < 0) return 'var(--' + runnerUp + '-lit)';
-  const pool = VIVID_FACETS.filter(function (f) { return f !== dom; });
+// THE COLOUR THAT GOES UNDER THE WORD.
+// ⚠️ NOT PICKED AT RANDOM FROM THE COLOURED FACETS, which is what the first version did and what
+// put DEGEN's magenta under COLLECTOR's periwinkle. gruff named the pairing that works: BUILDER's
+// red over COLLECTOR's periwinkle reads as one live object. What that pair has is a plate DARKER
+// and cooler than the word, so it falls back like a shadow instead of competing with it.
+// Each row below is ordered best-first, and the address chooses between the top two, so the
+// plate still varies from wallet to wallet without ever landing on a clash.
+const PLATE = {
+  BUILDER:   ['COLLECTOR', 'DEGEN'],      // red over periwinkle, the pair gruff approved
+  DEGEN:     ['COLLECTOR', 'BUILDER'],    // magenta is red-adjacent, so it takes the same plate
+  WHALE:     ['COLLECTOR', 'DEGEN'],      // gold over periwinkle, the strongest contrast here
+  NEWBIE:    ['COLLECTOR', 'DEGEN'],      // green over periwinkle stays cool and legible
+  COLLECTOR: ['BUILDER', 'DEGEN'],        // periwinkle is already the dark one, so it takes a warm plate
+  OG:        ['COLLECTOR', 'DEGEN'],      // grey word, any strong plate lifts it
+  GHOST:     ['DEGEN', 'COLLECTOR'],
+};
+function plateColour(addr, dom) {
+  const pool = (PLATE[dom] || ['COLLECTOR', 'DEGEN']).filter(function (f) { return f !== dom; });
   let h = 0x9e3779b1;                                  // a basis of its own
   const a = String(addr || '').toLowerCase();
   for (let i = 0; i < a.length; i++) { h ^= a.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
@@ -45,7 +59,7 @@ function view(D, signed, typed, twin, near, rank) {
     // does not already state in words, so when the runner-up is one of the greys it is replaced by
     // a coloured facet picked FROM THE ADDRESS, like every other value here. Its own FNV basis, so
     // it does not track the treatment or the embers.
-    plateLit: plateColour(s.addr, dom, p.runnerUp),
+    plateLit: plateColour(s.addr, dom),
     ink: 'var(--' + dom + '-ink)',           // the light-ground twin, unused on this card
     // identity: only a signature earns a name. Anyone can read anyone's wallet, so an unsigned card
     // may never carry a typed name or the page becomes a free impersonation tool.

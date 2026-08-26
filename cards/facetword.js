@@ -80,7 +80,11 @@ T.solid = (w, c, r, art, mw) => {
     // grey shadow whatever its facet. gruff asked for the layer underneath to carry a live colour
     // and never grey. `r` is the plate colour, which the card guarantees is one of the five
     // coloured facets.
-    '<i style="color:' + r + ';opacity:.34;transform:translate(.5cqw,.42cqw)">' + w + '</i>' +
+    // ⚠️ NEARLY OPAQUE, BECAUSE A FAINT COLOUR IS NOT A COLOUR. At .34 over this card's #0b0b0e
+    // ground, DEGEN's #e23b6d arrives as #541b2e: not magenta, dirty maroon. The plate gruff
+    // approved on the two-plate word is at full strength, which is the whole reason it reads as a
+    // live colour instead of a smudge.
+    '<i style="color:' + r + ';opacity:.92;transform:translate(.5cqw,.42cqw)">' + w + '</i>' +
     '<i style="color:' + c + ';opacity:.35;transform:translate(-.42cqw,-.34cqw)">' + w + '</i>' +
     '<b style="color:' + c + '">' + w + '</b></div>';
 };
