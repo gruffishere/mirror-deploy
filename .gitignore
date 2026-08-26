@@ -1,0 +1,17 @@
+# ⛔ THE KEYS NEVER GO IN. They reach the server as environment variables the host holds.
+.keys.json
+.env
+
+# the evidence lists live on the mounted disk in production; committing them would push this
+# machine's test rows over the real ones on the next deploy
+site/lists/
+
+# ⛔ rebuilt inside the image by npm ci. It was committed once, by a rebuild that dropped this file,
+# and 1,511 files went in before the count caught it.
+node_modules/
+
+# rendered output and working files
+site/png/
+*.bak
+*.log
+*.tmp
