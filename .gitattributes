@@ -1,0 +1,14 @@
+# ⛔ THE ENTRYPOINT MUST BE LF, ALWAYS.
+# A shell script checked out with CRLF fails in a Linux container as
+#   exec /app/docker-entrypoint.sh: no such file or directory
+# because the kernel reads the interpreter as "/bin/sh\r". The container never starts and the error
+# names a file that is plainly there. This currently happens to be right; this line makes it so.
+*.sh            text eol=lf
+docker-entrypoint.sh text eol=lf
+Dockerfile      text eol=lf
+.dockerignore   text eol=lf
+
+# never let git touch these
+*.woff2 binary
+*.png   binary
+*.jpg   binary
