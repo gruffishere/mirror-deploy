@@ -108,7 +108,12 @@ button.ghost{background:transparent;color:#e9e9ef;border:1px solid rgba(255,255,
    the same blue, scaled to sit on a text baseline. */
 .wm.sm{padding:3px 9px 4px;border-radius:6px;vertical-align:baseline}
 .wm.sm b{display:inline;font:800 18px/1 var(--disp);letter-spacing:-.05em}
-.claim .deal .wm b{color:#0101ef}   /* beats .claim .deal b, which is white and would blank the chip */
+/* ⛔ THE CHIP IS ROYAL BLUE ON PAPER, ALWAYS, AND THIS IS THE THIRD TIME IT HAS BEEN LOST.
+   Any ancestor that styles a plain <b> beats .wm b on source order at equal specificity, and the
+   text goes white on a white block: the chip is still there, perfectly invisible. It happened
+   inside .claim .deal, then inside .lede. Rather than chase each new container, the wordmark
+   states that it is not negotiable. It is a brand mark; it is never any other colour. */
+.wm b{color:#0101ef !important}
 .fields{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
 .fields{margin-top:20px}
 .fields input{flex:1 1 200px;background:#171720;border:1px solid rgba(255,255,255,.16);border-radius:11px;
@@ -215,7 +220,8 @@ footer p{margin:0 0 9px;max-width:80ch}
       <button id="go">READ</button>
     </form>
     <p class="tries">try <a data-a="vitalik.eth">vitalik.eth</a> &middot;
-      <a data-a="dingaling.eth">dingaling.eth</a> &middot; <a data-a="tfw.eth">tfw.eth</a></p>
+      <a data-a="adamweitsman.eth">adamweitsman.eth</a> &middot;
+      <a data-a="dingaling.eth">dingaling.eth</a></p>
     <div class="state" id="state"></div>
     </div>
     <div class="mascot" aria-hidden="true"><i id="mascot"></i></div>
@@ -353,8 +359,8 @@ function drawClaim() {
       // paragraph; it is not on its own a reason to connect a wallet and sign a message.
       '<p class="deal">Enter your name and X handle and sign with your wallet, and your card gets a ' +
       '<b>ticket</b>. A ticket to what? To whatever <span class=\"wm sm\"><b>FACETS</b></span> has coming. ' +
-      'You are on the list either way. Don’t think about it too hard: sign, wait, and it might ' +
-      'turn out to be you.</p>' +
+      'You are on the list either way. Which list, GTD or FCFS, we are not saying yet. Don’t ' +
+      'think about it too hard: sign, wait, and it might turn out to be you.</p>' +
       '<div class="fields">' +
         '<input id="nm" maxlength="24" placeholder="name">' +
         '<input id="hd" maxlength="16" placeholder="@handle">' +

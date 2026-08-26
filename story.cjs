@@ -128,7 +128,14 @@ function beats(s, t, p, pop) {
   }
 
   // ── the failures ───────────────────────────────────────────────────────────────────────────────
-  if (has(s.failCount)) {
+  // ⚠️ "NOT ONE HAS EVER REVERTED" NEEDS SOMETHING TO HAVE BEEN SENT.
+  // A vault that receives NFTs and sends almost nothing cannot revert, so the card was telling
+  // adamweitsman.eth that nobody is this careful on the strength of a single outgoing transaction.
+  // It is the empty-wallet problem again in a different coat: true, and not a fact about the person.
+  // A revert COUNT above zero is always worth saying; the perfect record needs a record to be
+  // perfect over.
+  const enoughSent = s.sent == null || s.sent >= 10;
+  if (has(s.failCount) && (s.failCount > 0 || enoughSent)) {
     add('revert', s.failCount === 0 ? 'Not one of your transactions has ever reverted.'
         : num(s.failCount) + ' of your transactions reverted.',
       s.failCount === 0 ? 'Either careful or lucky. Nobody is this careful.'
