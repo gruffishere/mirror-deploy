@@ -19,6 +19,17 @@ const short = a => a.slice(0,6) + '...' + a.slice(-4);
 const num = n => n.toLocaleString('en-US');            // pinned: this machine runs a Turkish locale
 
 // Everything a card needs, derived once. `signed` decides identity and nothing else.
+const GREY_FACETS = ['OG', 'GHOST'];
+const VIVID_FACETS = ['NEWBIE', 'COLLECTOR', 'DEGEN', 'BUILDER', 'WHALE'];
+function plateColour(addr, dom, runnerUp) {
+  if (GREY_FACETS.indexOf(runnerUp) < 0) return 'var(--' + runnerUp + '-lit)';
+  const pool = VIVID_FACETS.filter(function (f) { return f !== dom; });
+  let h = 0x9e3779b1;                                  // a basis of its own
+  const a = String(addr || '').toLowerCase();
+  for (let i = 0; i < a.length; i++) { h ^= a.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return 'var(--' + pool[h % pool.length] + '-lit)';
+}
+
 function view(D, signed, typed, twin, near, rank) {
   const p = D.profile, s = D.signals, dom = p.dominant;
   const t = typed || {};
@@ -27,6 +38,14 @@ function view(D, signed, typed, twin, near, rank) {
     colour: 'var(--' + dom + ')',            // the brand colour: plates, frame, glow, spectrum
     lit: 'var(--' + dom + '-lit)',           // the same colour lifted enough to be READ on the dark card
     runnerLit: 'var(--' + p.runnerUp + '-lit)',
+    // THE TWO-PLATE WORD'S BOTTOM LAYER, AND IT IS NEVER GREY.
+    // Two of the seven facets are greys, OG graphite and Ghost slate, so whenever those two come
+    // first and second the offset word is grey on grey and the whole effect disappears. Seen on
+    // gunslinger.eth: OG over GHOST, one flat grey shape. The plate carries no meaning the card
+    // does not already state in words, so when the runner-up is one of the greys it is replaced by
+    // a coloured facet picked FROM THE ADDRESS, like every other value here. Its own FNV basis, so
+    // it does not track the treatment or the embers.
+    plateLit: plateColour(s.addr, dom, p.runnerUp),
     ink: 'var(--' + dom + '-ink)',           // the light-ground twin, unused on this card
     // identity: only a signature earns a name. Anyone can read anyone's wallet, so an unsigned card
     // may never carry a typed name or the page becomes a free impersonation tool.
@@ -381,8 +400,8 @@ function L2b(v) {
     '</div>';
   }).join('');
   const heroSupport = 'You lean <b style="color:#fff;font-weight:700">' + v.dom + '</b>, ' +
-    (TAGLINE[v.dom] || '') + '. <b style="color:' + v.runnerLit + '">' + v.runnerUp + '</b> is ' +
-    gap + ' behind.';
+    (TAGLINE[v.dom] || '') + '. <b style="color:' + v.runnerLit + '">' + v.runnerUp + '</b> ' +
+    (gap === 0 ? 'is level with it.' : 'is ' + gap + ' behind.');
   const heroAside = v.near === 0 ? 'NOBODY IN 5,000 LIKE YOU' : v.near + ' OF 5,000 LIKE YOU';
 
   return '' +
@@ -433,13 +452,14 @@ function L2b(v) {
   '<div class="abs m" style="left:41.5cqw;top:16.2cqw;font-size:1.35cqw;color:#9a9aa8">' +
     (v.nearTie ? 'DOMINANT FACET, BARELY' : 'DOMINANT FACET') + '</div>' +
   '<div class="abs" style="left:41.5cqw;top:18cqw;height:11.7cqw;display:flex;align-items:flex-end">' +
-    window.FACETWORD.forCard(v.s.addr, v.dom, v.lit, v.runnerLit, v.art, 54,
+    window.FACETWORD.forCard(v.s.addr, v.dom, v.lit, v.plateLit, v.art, 54,
       (typeof window !== 'undefined' && window.FAZ1_POOL) || null, v.colour).html + '</div>' +
 
-  (v.nearTie
-    ? '<div class="abs m" style="left:41.5cqw;top:31cqw;font-size:1.2cqw;color:' + v.runnerLit + '">' +
-        'BY A HAIR &middot; ' + v.runnerUp + ' IS ' + v.margin.toFixed(3) + ' BEHIND</div>'
-    : '') +
+  // ⛔ THE NEAR-TIE LINE USED TO SIT HERE, AT top:31cqw, WHICH IS THE HERO BOX'S OWN TOP.
+  // It printed straight through the box's heading. It also said a third time what the card already
+  // says twice: the label reads DOMINANT FACET, BARELY, and the support line names the runner-up
+  // and its distance. Deleted rather than moved: there is no room between the word slot, which ends
+  // at 29.7, and the box at 31, and nothing was lost.
 
   // the number, replacing the percentile as the payload
   // ⚠️ EVERY BAND IS A FIXED HEIGHT AND THE BOX IS CUT FOR THE SUM OF THEM. The previous version

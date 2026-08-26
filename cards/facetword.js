@@ -75,7 +75,12 @@ const T = {};
 T.solid = (w, c, r, art, mw) => {
   const s = fitSans(w, mw, SANS);
   return '<div class="misfit" style="font:900 ' + s.toFixed(2) + 'cqw/.88 var(--disp);letter-spacing:-.045em">' +
-    '<i style="color:#fff;opacity:.22;transform:translate(.5cqw,.42cqw)">' + w + '</i>' +
+    // ⚠️ THE TRAILING GHOST TAKES THE PLATE COLOUR, NOT WHITE.
+    // White at 22% over a near-black card is grey, so every wallet drawn with this treatment got a
+    // grey shadow whatever its facet. gruff asked for the layer underneath to carry a live colour
+    // and never grey. `r` is the plate colour, which the card guarantees is one of the five
+    // coloured facets.
+    '<i style="color:' + r + ';opacity:.34;transform:translate(.5cqw,.42cqw)">' + w + '</i>' +
     '<i style="color:' + c + ';opacity:.35;transform:translate(-.42cqw,-.34cqw)">' + w + '</i>' +
     '<b style="color:' + c + '">' + w + '</b></div>';
 };
