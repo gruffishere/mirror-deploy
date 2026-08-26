@@ -404,6 +404,19 @@ http.createServer(async (req, res) => {
     return json(res, 200, population());
   }
 
+  // ⛔ REMOVING A SIGNATURE. Admin token, one address, never a sweep.
+  // It exists because the lists live on a mounted disk that nothing else can reach: without it the
+  // only way to correct a row is a shell on the container, and there is not always one. Every
+  // request is printed, so the log says who was removed and when even though the row is gone.
+  if (u.pathname === '/api/admin/unsign') {
+    if (!ADMIN || u.searchParams.get('token') !== ADMIN) return json(res, 403, { error: 'no' });
+    const a = String(u.searchParams.get('addr') || '').toLowerCase();
+    const out = CLAIMS.unsign(a);
+    if (out.ok) CLAIMED.delete(a);        // or the card keeps calling itself signed until a restart
+    console.log('admin unsign ' + a + ' -> ' + JSON.stringify(out));
+    return json(res, out.ok ? 200 : 400, out);
+  }
+
   // ⚠️ the card renderer lives in wrapped/cards/ and was never reachable from here
   if (u.pathname.startsWith('/cards/')) {
     const rel = u.pathname.slice('/cards/'.length);

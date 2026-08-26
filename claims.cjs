@@ -202,5 +202,34 @@ const stats = () => {
   };
 };
 
-module.exports = { MESSAGE, issueNonce, claim, stats, fcfsCsv, verifyAll, signedLatest,
+// REMOVE ONE SIGNATURE, BY ADDRESS.
+// ⛔ THE RULES ARE unsign.cjs's RULES, and they exist because I destroyed a real signature once:
+//   1. never blank the file. The list is rebuilt from the rows that do NOT match, so a row nobody
+//      named cannot be lost even if this function is called wrong.
+//   2. a timestamped backup before anything is written.
+//   3. an address that is not on the list changes nothing and says so.
+// A signature cannot be reconstructed once gone: it can only be re-verified against the exact bytes
+// that were signed, and those bytes live in the row.
+function unsign(addr) {
+  addr = String(addr || '').toLowerCase();
+  if (!/^0x[0-9a-f]{40}$/.test(addr)) return { error: 'that is not an address' };
+  let lines;
+  try { lines = fs.readFileSync(SIGNED, 'utf8').split('\n').filter(Boolean); }
+  catch { return { error: 'there is no signed list yet' }; }
+  const keep = [], going = [];
+  for (const l of lines) {
+    let r = null; try { r = JSON.parse(l); } catch {}
+    if (r && String(r.addr).toLowerCase() === addr) going.push(r); else keep.push(l);
+  }
+  if (!going.length) return { error: 'that address is not on the list', removed: 0 };
+  const stamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
+  const backup = SIGNED + '.' + stamp + '.bak';
+  fs.copyFileSync(SIGNED, backup);
+  fs.writeFileSync(SIGNED, keep.join('\n') + (keep.length ? '\n' : ''));
+  return { ok: true, removed: going.length, remaining: keep.length,
+           who: going.map(r => ({ name: r.name || null, handle: r.handle || null, t: r.t })),
+           backup: path.basename(backup) };
+}
+
+module.exports = { MESSAGE, issueNonce, claim, stats, fcfsCsv, verifyAll, signedLatest, unsign,
                    logRead, cleanText, cleanHandle, EXCLUDED, READS, SIGNED };
