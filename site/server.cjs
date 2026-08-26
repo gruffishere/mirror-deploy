@@ -49,7 +49,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.
 // the box and burn a guaranteed spot on a wallet they do not hold. Recovering the signer is free, needs
 // no approval and takes the visitor five seconds.
 let recover = null;
-try { const { ethers } = require(path.join(__dirname, '..', '..', 'contract', 'node_modules', 'ethers'));
+try { const { ethers } = require('ethers');
   recover = (msg, sig) => ethers.utils.verifyMessage(msg, sig).toLowerCase(); } catch {}
 
 const nonces = new Map();                       // address -> {nonce, at}

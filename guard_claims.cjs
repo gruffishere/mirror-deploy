@@ -19,7 +19,7 @@ const real = path.join(__dirname, 'site', 'lists');
 // thing that ships. The module takes MIRROR_LISTS_DIR for exactly this.
 process.env.MIRROR_LISTS_DIR = TMP;
 const C = require(path.join(__dirname, 'claims.cjs'));
-const ethers = require(path.join(__dirname, '..', 'contract', 'node_modules', 'ethers'));
+const ethers = require('ethers');
 
 let fail = 0, refused = 0, accepted = 0;
 const ok = (cond, msg) => { console.log((cond ? '  ok  ' : '  ⛔  ') + msg); if (!cond) fail++; };

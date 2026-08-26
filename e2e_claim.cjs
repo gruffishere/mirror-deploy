@@ -11,7 +11,7 @@
 // belong to nobody and will show up in signed.jsonl. `--clean` removes them again afterwards.
 'use strict';
 const http = require('http'), path = require('path'), fs = require('fs');
-const ethers = require(path.join(__dirname, '..', 'contract', 'node_modules', 'ethers'));
+const ethers = require('ethers');
 
 const arg = k => { const i = process.argv.indexOf('--' + k); return i >= 0 ? process.argv[i + 1] : undefined; };
 const PORT = Number(arg('port') || 8141);

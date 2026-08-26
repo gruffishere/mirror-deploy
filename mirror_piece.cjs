@@ -14,7 +14,10 @@
 //   3. The card says it: this is your reflection, not your mint. The chain has not chosen yet.
 'use strict';
 const path = require('path');
-const { loadAtSupply } = require(path.join(__dirname, '..', 'review', 'load_at_supply.cjs'));
+// ⚠️ artengine/ is a VENDORED COPY of exp/review + exp/mirror_v2, kept in step by
+// sync_artengine.cjs. Reaching two directories up worked here and took the server down at boot
+// anywhere else. `node sync_artengine.cjs --check` fails if the copy falls behind the real art.
+const { loadAtSupply } = require(path.join(__dirname, 'artengine', 'review', 'load_at_supply.cjs'));
 
 const FACETS = ['NEWBIE', 'COLLECTOR', 'DEGEN', 'BUILDER', 'OG', 'WHALE', 'GHOST'];
 
@@ -115,7 +118,7 @@ const out = arg('--out', path.join(__dirname, '..', 'out', 'mirror_' + addr.slic
 const scale = +arg('--scale', 30);
 const { writeCellsPng } = (() => {
   const fs = require('fs'), zlib = require('zlib');
-  const CELLS = require(path.join(__dirname, '..', 'onchain', '_svgcells.cjs'));
+  const CELLS = require(path.join(__dirname, 'artengine', 'onchain', '_svgcells.cjs'));
   const CRCT = (() => { const t = new Int32Array(256);
     for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c; }
     return t; })();
