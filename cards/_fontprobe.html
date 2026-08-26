@@ -1,0 +1,22 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/cards/faz1.css">
+<body><div id="r">pending</div><script>
+// DOES THE FONT ACTUALLY OWN THE GLYPH?
+// document.fonts.check() only consults the declared unicode-range, so it says "yes" for a character
+// the file does not contain. Measuring is the real answer: if a family lacks a glyph the browser
+// substitutes, and the width collapses onto the width of a family that was never loaded at all.
+// 'A' is the control: every one of these faces has it, so a family that measures DIFFERENT on 'A'
+// proves the method can tell them apart in the first place.
+const c = document.createElement('canvas').getContext('2d');
+const w = (fam, ch) => { c.font = '100px "' + fam + '"'; return c.measureText(ch).width; };
+const fams = ['Inter', 'JetBrains Mono', 'Caveat'];
+Promise.all(fams.flatMap(f => ['A','Ξ'].map(ch => document.fonts.load('100px "'+f+'"', ch))))
+  .then(() => {
+    const out = [];
+    for (const f of fams) for (const ch of ['A','Ξ']) {
+      const mine = w(f, ch), none = w('NoSuchFamilyQZX', ch);
+      out.push(f.replace('JetBrains Mono','Mono') + '/' + ch + '=' +
+               (mine !== none ? 'OWN' : 'FALLBACK') + '(' + mine.toFixed(1) + 'vs' + none.toFixed(1) + ')');
+    }
+    document.getElementById('r').textContent = out.join('  ');
+  });
+</script></body>

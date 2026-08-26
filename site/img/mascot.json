@@ -1,0 +1,17 @@
+{
+ "id": 1066,
+ "facet": "WHALE",
+ "cell": 35,
+ "cols": 9,
+ "rows": 5,
+ "yaw": 12,
+ "pitch": 8,
+ "supply": 6969,
+ "seed": "0xFACE7777",
+ "traits": {
+  "Gild": "Bullion",
+  "Halo": 4,
+  "Eyes": "Wide",
+  "Mouth": "gm"
+ }
+}

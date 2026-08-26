@@ -1,0 +1,46 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>card</title>
+<link rel="stylesheet" href="/cards/faz1.css">
+<style>
+/* ⚠️ ONE CARD, AT EXPORT SIZE, AND NOTHING ELSE ON THE PAGE. This is what the PNG endpoint points a
+   headless browser at, so anything decorative here would end up inside the file somebody shares.
+   1600x900 is the card's own 16:9 at a size X will not resample into mush. */
+html,body{margin:0;padding:0;background:#000;overflow:hidden}
+#stage{width:1600px;height:900px}
+#stage .card{border-radius:0;box-shadow:none}      /* a rounded corner would export as black */
+</style></head><body>
+<div id="stage"></div>
+<script>
+// the art must be INLINE for the export, or the rasteriser races the network and ships a card with a
+// hole where the piece goes. The endpoint hands it over already fetched.
+window.FAZ1_ART = (a, f) => '/api/art.svg?addr=' + a + '&facet=' + f;
+</script>
+<script src="/cards/facetword.js"></script>
+<script src="/cards/faz1_layouts.js"></script>
+<script>
+const QS = new URLSearchParams(location.search);
+const addr = QS.get('addr') || '';
+
+fetch('/api/read?addr=' + encodeURIComponent(addr))
+  .then(r => r.json())
+  .then(j => {
+    if (j.error) throw new Error(j.error);
+    const m = j.mirror || {};
+    const claimed = j.claimed || null;
+    const v = FAZ1_VIEW(j, !!claimed, claimed || {}, m.twin || null,
+                        m.near == null ? 0 : m.near, m.rank || null);
+    document.getElementById('stage').innerHTML = FAZ1_CARDS.L2b(v);
+    // ⚠️ THE FLAG THE SCREENSHOT WAITS FOR. A fixed delay is either too short on a cold start or
+    // wasted on a warm one, and the art is an <img> that may still be in flight.
+    const img = document.querySelector('#stage .art img');
+    const done = () => { document.body.dataset.ready = '1'; };
+    if (img && !img.complete) { img.onload = done; img.onerror = done; }
+    else done();
+  })
+  .catch(e => {
+    document.body.innerHTML = '<pre style="color:#fff;font:14px monospace;padding:20px">' +
+      e.message + '</pre>';
+    document.body.dataset.ready = '1';
+  });
+</script>
+</body></html>

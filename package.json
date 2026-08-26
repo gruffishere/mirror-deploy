@@ -1,0 +1,14 @@
+{
+  "name": "the-mirror",
+  "version": "1.0.0",
+  "private": true,
+  "description": "THE MIRROR - reads an Ethereum wallet and returns its FACETS reading.",
+  "main": "site/server_v2.cjs",
+  "scripts": {
+    "start": "node site/server_v2.cjs"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "ethers": "5.8.0"
+  }
+}

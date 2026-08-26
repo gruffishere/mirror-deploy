@@ -1,0 +1,337 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FACETS WRAPPED</title>
+<style>
+/* ⚠️ The palette is the LOCKED brand, not a fresh choice: warm paper, royal blue, ink, and the seven
+   facet accents exactly as trailer_engine.js defines them. The cards were generated against these, so
+   any drift here shows up as a page that does not match its own output. */
+:root{
+  --paper:#f5f5f7; --ink:#111114; --muted:#6e6e78; --line:#e3e3e8; --blue:#0101ef;
+  --NEWBIE:#37c878; --COLLECTOR:#0101ef; --DEGEN:#e23b6d; --BUILDER:#fe0000;
+  --OG:#454b54; --WHALE:#fcb913; --GHOST:#99a2ad;
+  --accent:var(--blue);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper); color:var(--ink); overflow-x:hidden;
+  font:400 16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
+  /* paper grain, drawn not downloaded */
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .045 0'/></filter><rect width='140' height='140' filter='url(%23n)'/></svg>");
+  transition:background-color .6s;
+}
+.mono{font-family:ui-monospace,"SF Mono",Consolas,monospace}
+
+/* ── the oversized wordmark sitting behind everything, as on the cards ─────────────────────────── */
+.hero{position:relative;padding:54px 0 6px;text-align:center}
+.hero .ghosttype{
+  position:absolute;left:50%;top:8px;transform:translateX(-50%);
+  font-weight:900;font-size:clamp(78px,17vw,168px);letter-spacing:-.055em;
+  color:var(--ink);opacity:.075;white-space:nowrap;pointer-events:none;user-select:none;
+}
+.hero h1{position:relative;margin:0;font-size:13px;letter-spacing:.42em;font-weight:800}
+.hero .sub{position:relative;margin:6px 0 0;font-size:13px;letter-spacing:.22em;color:var(--muted);font-weight:700}
+
+.wrap{max-width:600px;margin:0 auto;padding:0 20px 90px;position:relative}
+
+/* ── collage furniture: barcode strips, index tabs, a torn note ────────────────────────────────── */
+.sticker{position:absolute;pointer-events:none;user-select:none;opacity:.85}
+.tab{background:#fff;border:1px solid var(--line);border-radius:7px;padding:4px 9px;
+  font:700 10px/1 ui-monospace,Consolas,monospace;letter-spacing:.12em;color:var(--muted);
+  box-shadow:0 6px 16px rgba(17,17,20,.07)}
+.barcode{display:flex;gap:2px;align-items:flex-end;height:22px}
+.barcode i{display:block;width:2px;background:var(--ink);opacity:.75}
+
+/* ── counter ───────────────────────────────────────────────────────────────────────────────────── */
+.counter{margin:26px 0 20px;padding:20px 22px;background:#fff;border:2px solid var(--ink);
+  border-radius:20px;box-shadow:0 14px 34px rgba(17,17,20,.07);position:relative;overflow:hidden}
+.counter .n{font-size:52px;font-weight:900;letter-spacing:-.045em;line-height:.95}
+.counter .of{font-size:14px;color:var(--muted);font-weight:700;letter-spacing:.1em;margin-left:8px}
+.bar{height:10px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:14px}
+.bar i{display:block;height:100%;width:0;border-radius:99px;background:var(--accent);
+  transition:width .7s cubic-bezier(.2,.8,.2,1)}
+
+/* ── the notice, deliberately impossible to skim past ──────────────────────────────────────────── */
+.notice{border:2px dashed var(--blue);border-radius:16px;padding:15px 17px;margin:0 0 22px;
+  font-size:14px;line-height:1.6;background:rgba(1,1,239,.03)}
+.notice .k{display:block;font:800 10px/1 ui-monospace,Consolas,monospace;letter-spacing:.24em;
+  color:var(--blue);margin-bottom:8px}
+
+.card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:22px;margin-bottom:16px;
+  box-shadow:0 14px 34px rgba(17,17,20,.06)}
+label{display:block;font:700 10px/1 ui-monospace,Consolas,monospace;letter-spacing:.22em;
+  color:var(--muted);margin:0 0 8px}
+input{width:100%;padding:14px 15px;border:2px solid var(--line);border-radius:13px;font:inherit;background:#fff;
+  transition:border-color .18s,box-shadow .18s}
+input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px rgba(1,1,239,.09)}
+
+button{width:100%;padding:16px;border:none;border-radius:14px;background:var(--accent);color:#fff;
+  font:800 16px/1 inherit;letter-spacing:.01em;cursor:pointer;margin-top:14px;position:relative;
+  overflow:hidden;transition:transform .12s,filter .18s}
+button:hover:not(:disabled){filter:brightness(1.08)}
+button:active:not(:disabled){transform:translateY(2px) scale(.995)}
+button:disabled{background:#c9c9d2;cursor:default}
+button.ghost{background:#fff;color:var(--ink);border:2px solid var(--ink)}
+/* the shimmer only runs while we are genuinely waiting on the chain */
+button.busy::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.42) 50%,transparent 70%);
+  animation:sweep 1.15s linear infinite}
+@keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+
+/* ── the scan readout: what is actually being fetched, as it arrives ───────────────────────────── */
+.scan{font:12px/1.85 ui-monospace,Consolas,monospace;color:var(--muted);margin-top:14px;min-height:0}
+.scan div{opacity:0;transform:translateY(4px);animation:in .3s forwards}
+.scan b{color:var(--ink)}
+@keyframes in{to{opacity:1;transform:none}}
+
+/* ── the reveal ────────────────────────────────────────────────────────────────────────────────── */
+.reveal{text-align:center;padding:14px 0 4px}
+.reveal .roll{font-size:clamp(38px,11vw,64px);font-weight:900;letter-spacing:-.04em;line-height:1;
+  color:var(--accent)}
+.reveal.landed .roll{animation:pop .5s cubic-bezier(.2,1.5,.4,1)}
+@keyframes pop{0%{transform:scale(.82)}60%{transform:scale(1.06)}100%{transform:scale(1)}}
+.reveal .cap{font:700 11px/1 ui-monospace,Consolas,monospace;letter-spacing:.24em;color:var(--muted);
+  margin-top:12px}
+
+canvas{width:100%;height:auto;border-radius:16px;display:block;
+  box-shadow:0 18px 46px rgba(17,17,20,.14)}
+.story{font-size:15px;line-height:1.6;margin:16px 0 0}
+.story em{font-style:normal;color:var(--accent);font-weight:700}
+
+.err{color:#c00;font-size:14px;margin-top:12px;min-height:20px}
+.feed{margin-top:26px;font:12px/2 ui-monospace,Consolas,monospace;color:var(--muted)}
+.feed b{color:var(--ink)}
+.feed .row{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding:2px 0}
+
+.locked{text-align:center;padding:56px 16px}
+.locked .big{font-size:clamp(34px,9vw,54px);font-weight:900;letter-spacing:-.045em;line-height:1.05;margin-bottom:16px}
+.locked .stamp{display:inline-block;border:3px solid var(--blue);color:var(--blue);border-radius:12px;
+  padding:9px 16px;font:800 12px/1 ui-monospace,Consolas,monospace;letter-spacing:.24em;
+  transform:rotate(-5deg);margin-bottom:22px}
+.hide{display:none !important}
+</style></head><body>
+
+<div class="hero">
+  <div class="ghosttype">FACETS</div>
+  <h1>FACETS</h1>
+  <p class="sub">WRAPPED</p>
+</div>
+
+<div class="wrap">
+  <span class="sticker tab" style="right:6px;top:-8px;transform:rotate(4deg)">FCTS-2026</span>
+  <span class="sticker barcode" id="bc" style="left:2px;top:-2px;transform:rotate(-3deg)"></span>
+
+  <div class="notice">
+    <span class="k">READ THIS FIRST</span>
+    This is a toy. It reads your wallet and hands you a facet <b>for fun</b>. It is <u>not</u> your mint.
+    The collection assigns facets at random, on chain, after the mint closes. Nothing here reserves,
+    predicts or influences that.
+  </div>
+
+  <div id="lockedView" class="locked hide">
+    <div class="stamp">LOCKED</div>
+    <div class="big">SPOTS ARE GONE</div>
+    <p style="color:var(--muted)">Every spot is taken and the list is closed.<br>It opens again. Watch the account.</p>
+  </div>
+
+  <div id="mainView">
+    <div class="counter">
+      <div><span class="n" id="taken">0</span><span class="of">/ <span id="cap">600</span> SPOTS</span></div>
+      <div class="bar"><i id="barFill"></i></div>
+    </div>
+
+    <div class="card" id="formCard">
+      <label>YOUR X HANDLE</label>
+      <input id="handle" placeholder="gruffdzn" autocomplete="off" spellcheck="false">
+      <label style="margin-top:18px">YOUR WALLET</label>
+      <input id="wallet" placeholder="0x…" autocomplete="off" spellcheck="false">
+      <button id="go">read my wallet</button>
+      <div id="pick" class="hide" style="margin-top:12px"></div>
+      <div class="scan" id="scan"></div>
+      <div class="err" id="err"></div>
+      <p style="color:var(--muted);font-size:13px;margin:14px 0 0">
+        Signing is free and never touches the chain. It only proves the wallet is yours,
+        so nobody can take a spot with an address they do not hold.
+      </p>
+    </div>
+
+    <div class="card hide" id="resultCard">
+      <div class="reveal" id="reveal"><div class="roll" id="roll">—</div><div class="cap" id="revealCap"></div></div>
+      <canvas id="cv" style="margin-top:16px"></canvas>
+      <p class="story" id="story"></p>
+      <button id="share">share on X</button>
+      <button class="ghost" id="dl">download the card</button>
+    </div>
+
+    <div class="feed" id="feed"></div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+let GEO = null;
+const FACETS = ['NEWBIE','COLLECTOR','DEGEN','BUILDER','OG','WHALE','GHOST'];
+
+// a barcode drawn from nothing, so the page carries the cards' furniture without an asset
+$('#bc').innerHTML = Array.from({length:26},()=>'<i style="height:'+(9+Math.round(Math.random()*13))+'px"></i>').join('');
+
+// ── which wallet ──────────────────────────────────────────────────────────────────────────────────
+// ⚠️ `window.ethereum` IS NOT A HANDLE TO METAMASK. Every injected wallet writes the same global and the
+// last to load wins; gruff's "connect" opened Temple, a Tezos wallet. EIP-6963 has each wallet announce
+// itself, so we can list what is really installed instead of guessing.
+const PROVIDERS = new Map();
+function discoverWallets(){
+  return new Promise(resolve=>{
+    const on = e => { const d=e.detail; if(d&&d.info&&d.provider) PROVIDERS.set(d.info.rdns,d); };
+    window.addEventListener('eip6963:announceProvider',on);
+    window.dispatchEvent(new Event('eip6963:requestProvider'));
+    setTimeout(()=>{
+      window.removeEventListener('eip6963:announceProvider',on);
+      if(!PROVIDERS.size && window.ethereum){
+        const list = Array.isArray(window.ethereum.providers)?window.ethereum.providers:[window.ethereum];
+        list.forEach((p,i)=>PROVIDERS.set('legacy-'+i,{info:{name:p.isMetaMask?'MetaMask':p.isRabby?'Rabby':p.isCoinbaseWallet?'Coinbase Wallet':'Injected wallet',rdns:'legacy-'+i},provider:p}));
+      }
+      resolve([...PROVIDERS.values()]);
+    },350);
+  });
+}
+// Temple announces itself but cannot sign an Ethereum message; offering it only fails two clicks later.
+const isEvm = w => { try { return typeof w.provider.request==='function' && !/tezos|temple/i.test(w.info.rdns+w.info.name); } catch { return false; } };
+function chooseWallet(list){
+  return new Promise(resolve=>{
+    const box=$('#pick');
+    box.innerHTML='<label>WHICH WALLET</label>'+list.map((w,i)=>
+      '<button class="ghost" data-i="'+i+'" style="display:flex;align-items:center;gap:10px;justify-content:center">'+
+      (w.info.icon?'<img src="'+w.info.icon+'" width="20" height="20" style="border-radius:5px">':'')+w.info.name+'</button>').join('');
+    box.classList.remove('hide');
+    box.querySelectorAll('button').forEach(b=>b.onclick=()=>{box.classList.add('hide');resolve(list[+b.dataset.i]);});
+  });
+}
+
+// ── the scan readout ──────────────────────────────────────────────────────────────────────────────
+// ★ It prints what is genuinely being fetched, in order, as it happens. A spinner would have been less
+// work and told the visitor nothing; this doubles as the honest answer to "what are you reading".
+function say(t){ const d=document.createElement('div'); d.innerHTML=t; $('#scan').appendChild(d); }
+function clearScan(){ $('#scan').innerHTML=''; }
+
+// ── the card, composited in the browser ───────────────────────────────────────────────────────────
+async function buildCard(facet, art, handle, wallet){
+  const g = GEO.find(x=>x.facet.toLowerCase()===facet.toLowerCase());
+  const cv=$('#cv'); cv.width=g.NW; cv.height=g.NH;
+  const x=cv.getContext('2d');
+  const base=new Image();
+  await new Promise(r=>{base.onload=r;base.src='/cards/'+g.facet+'.png';});
+  x.drawImage(base,0,0,g.NW,g.NH);
+  const img=new Image();
+  await new Promise((r,j)=>{img.onload=r;img.onerror=j;
+    img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(art.svg);});
+  const s=document.createElement('canvas'); s.width=s.height=8;
+  const sx=s.getContext('2d'); sx.imageSmoothingEnabled=false; sx.drawImage(img,0,0,8,8);
+  const px=sx.getImageData(0,0,1,1).data;
+  x.fillStyle='rgb('+px[0]+','+px[1]+','+px[2]+')';
+  x.fillRect(g.panel.x,g.panel.y,g.panel.w,g.panel.h);
+  x.imageSmoothingEnabled=false;
+  x.drawImage(img, g.panel.x+Math.round((g.panel.w-g.art)/2), g.panel.y+Math.round((g.panel.h-g.art)/2), g.art, g.art);
+  const fit=(text,box,weight,maxPx,mono)=>{
+    let size=maxPx;
+    do{ x.font=weight+' '+size+'px '+(mono?'ui-monospace, Consolas, monospace'
+      :'-apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif'); size-=1; }
+    while(x.measureText(text).width>box.w-44 && size>10);
+    x.fillStyle='#111114'; x.textAlign='center'; x.textBaseline='middle';
+    x.fillText(text, box.x+box.w/2, box.y+box.h/2+1);
+  };
+  fit(art.name,g.fields[0],'800',Math.round(g.fields[0].h*0.42),false);
+  fit('@'+handle,g.fields[1],'700',Math.round(g.fields[1].h*0.38),false);
+  fit(wallet,g.fields[2],'600',Math.round(g.fields[2].h*0.42),true);
+}
+
+// ⚠️ The roll shows the randomness rather than hiding it, which is the honest thing to do when the draw
+// really is weighted-random. It is theatre with nothing behind it: the facet was decided server-side
+// before this ran, and the roll only ever lands on that.
+function rollTo(facet){
+  return new Promise(res=>{
+    const el=$('#roll'), rev=$('#reveal');
+    let i=0, t=42;
+    const step=()=>{
+      el.textContent=FACETS[i++ % FACETS.length];
+      t*=1.17;
+      if(t<300) setTimeout(step,t);
+      else { el.textContent=facet; rev.classList.add('landed');
+        document.documentElement.style.setProperty('--accent','var(--'+facet+')');
+        res(); }
+    };
+    step();
+  });
+}
+
+function story(r){
+  const s=r.signals, bits=[];
+  if(s.ageDays) bits.push('<b>'+s.ageDays.toLocaleString()+'</b> days on chain');
+  if(s.txs) bits.push('<b>'+s.txs.toLocaleString()+'</b> transactions');
+  if(s.nfts) bits.push('<b>'+s.nfts.toLocaleString()+'</b> NFTs');
+  if(s.deploys) bits.push('<b>'+s.deploys+'</b> contracts deployed');
+  const head=bits.slice(0,3).join(' · ')+'.';
+  return r.surprise
+    ? head+' Your data said <em>'+r.lean+'</em>. The mirror showed <em>'+r.facet+'</em>.'
+    : head+' That made you <em>'+r.facet+'</em>.';
+}
+
+async function refresh(){
+  const r=await (await fetch('/api/status')).json();
+  $('#taken').textContent=r.taken; $('#cap').textContent=r.cap;
+  $('#barFill').style.width=Math.min(100,100*r.taken/r.cap)+'%';
+  if(r.locked){ $('#mainView').classList.add('hide'); $('#lockedView').classList.remove('hide'); }
+  $('#feed').innerHTML=r.recent.map(e=>'<div class="row"><span>@'+e.handle+'</span><b>'+e.facet+'</b></div>').join('');
+}
+
+$('#go').onclick=async()=>{
+  const err=$('#err'); err.textContent=''; clearScan();
+  const handle=$('#handle').value.trim().replace(/^@/,'');
+  const wallet=$('#wallet').value.trim().toLowerCase();
+  if(!/^[A-Za-z0-9_]{1,20}$/.test(handle)) return err.textContent='That X handle does not look right.';
+  if(!/^0x[0-9a-f]{40}$/.test(wallet))     return err.textContent='That wallet address does not look right.';
+  const go=$('#go'); go.disabled=true; go.classList.add('busy'); go.textContent='reading…';
+  try{
+    say('&gt; finding your wallet…');
+    const found=(await discoverWallets()).filter(isEvm);
+    if(!found.length) throw new Error('No Ethereum wallet found. Install MetaMask, or open this page inside a wallet browser.');
+    const chosen = found.length===1 ? found[0] : await chooseWallet(found);
+    say('&gt; <b>'+chosen.info.name+'</b>');
+    const eth=chosen.provider;
+    const accts=await eth.request({method:'eth_requestAccounts'});
+    if(accts[0].toLowerCase()!==wallet) throw new Error('That wallet is connected as '+accts[0].slice(0,10)+'…, which is not the address you typed.');
+    const n=await (await fetch('/api/nonce',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({wallet})})).json();
+    if(n.error) throw new Error(n.error);
+    say('&gt; waiting for your signature…');
+    const sig=await eth.request({method:'personal_sign',params:[n.nonce,accts[0]]});
+    say('&gt; signed. reading the chain…');
+    const res=await fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({wallet,handle,sig})});
+    const r=await res.json();
+    if(res.status===423){ await refresh(); return; }
+    if(r.error) throw new Error(r.error);
+    const s=r.signals;
+    say('&gt; first seen <b>'+(s.ageDays?s.ageDays+' days ago':'unknown')+'</b>');
+    say('&gt; <b>'+s.txs.toLocaleString()+'</b> transactions · <b>'+(s.nfts||0).toLocaleString()+'</b> NFTs');
+    say('&gt; spot <b>'+r.taken+' / '+r.cap+'</b> is yours');
+
+    $('#formCard').classList.add('hide'); $('#resultCard').classList.remove('hide');
+    $('#revealCap').textContent='FOR FUN ONLY · NOT YOUR MINT';
+    await rollTo(r.facet);
+    const art=await (await fetch('/api/art?facet='+r.facet)).json();
+    await buildCard(r.facet,art,handle,wallet);
+    $('#story').innerHTML=story(r);
+    $('#dl').onclick=()=>{const a=document.createElement('a');
+      a.href=$('#cv').toDataURL('image/png'); a.download='facets-wrapped-'+handle+'.png'; a.click();};
+    $('#share').onclick=()=>{
+      const t='i ran my wallet through FACETS WRAPPED and got '+r.facet+'.\n\nfor fun only, not the mint.\n';
+      window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(t),'_blank');
+    };
+    await refresh();
+  }catch(e){ err.textContent=e.message||String(e); }
+  finally{ go.disabled=false; go.classList.remove('busy'); go.textContent='read my wallet'; }
+};
+
+(async()=>{ GEO=await (await fetch('/api/geometry')).json(); await refresh(); setInterval(refresh,15000); })();
+</script></body></html>

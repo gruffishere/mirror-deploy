@@ -1,0 +1,53 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>FACETS: THE MIRROR — the two faces</title>
+<link rel="stylesheet" href="cards.css">
+<style>
+/* THE CARD ON ITS OWN, FRONT AND BACK, WITH NOTHING BEHIND IT.
+   gruff, 2026-08-20: "kart tasarimda background olmasin, sadece onlu arkali kart."
+   ⚠️ The licence layout puts the same two faces on a printed page: a colour flood, a halftone circle,
+   confetti, registration marks and a display word running under the card. All of that is the POSTER.
+   Here the poster is gone and only the object is left, because inside the site's own panel the page
+   already has a ground of its own and a second one would fight it.
+   ⚠️ The faces come from `window.CARD_FACES`, which licence.js exports. They are not copied: cards.js
+   sets the rule that two copies of a layout is how a card ships looking like neither draft. */
+html,body{margin:0;background:transparent}
+/* the container query unit the card is drawn in resolves against THIS, so the whole card scales with
+   one number and nothing inside it has to be touched */
+#faces{width:1000px;container-type:inline-size}
+.face{background:#fff;border:1px solid var(--line);border-radius:2.6cqw;
+      box-shadow:0 1.4cqw 3.4cqw rgba(17,17,20,.10);padding:3.2cqw}
+.face + .face{margin-top:2.4cqw;padding:2.3cqw 2.7cqw}
+.facelab{font:800 1.3cqw/1 ui-monospace,Consolas,monospace;letter-spacing:.22em;color:var(--muted);
+         margin:0 0 1cqw .4cqw;text-transform:uppercase}
+</style></head><body>
+<div id="faces"></div>
+<script src="cards.js"></script>
+<script src="poster.js"></script>
+<script src="licence.js"></script>
+<script>
+const qs = new URLSearchParams(location.search);
+fetch(qs.get('data') || 'data_gruff.json')
+  .then(r => r.json())
+  .then(D => {
+    // calling the licence builds the faces and hangs them on window.CARD_FACES as a side effect, which
+    // is why its return value is thrown away here
+    window.CARD_LICENCE(D);
+    const F = window.CARD_FACES;
+    document.getElementById('faces').innerHTML =
+      '<div class="facelab">the card</div><div class="face">' + F.front() + '</div>' +
+      '<div class="facelab" style="margin-top:2.4cqw">the back</div><div class="face">' + F.back() + '</div>';
+    // ⚠️ the height is measured and sent up, because the parent cannot read it across the frame and a
+    // guessed height either clips the back of the card or leaves a hole under it
+    const tell = () => parent.postMessage(
+      { facesHeight: document.getElementById('faces').getBoundingClientRect().height }, '*');
+    const img = document.querySelector('#faces img');
+    if (img && !img.complete) img.onload = tell;
+    tell(); setTimeout(tell, 120);
+    document.body.dataset.ready = '1';
+  })
+  .catch(e => {
+    document.body.innerHTML = '<pre style="color:#c22">' + e.message + '</pre>';
+    document.body.dataset.ready = '1';
+  });
+</script>
+</body></html>

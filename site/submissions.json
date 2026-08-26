@@ -1,0 +1,20 @@
+[
+ {
+  "wallet": "0x4730497622bdfd6eafe1f09fa22b3a0aca94a646",
+  "handle": "gruffwashere",
+  "facet": "COLLECTOR",
+  "lean": "OG",
+  "surprise": true,
+  "verified": false,
+  "at": "2026-08-15T23:25:07.093Z",
+  "signals": {
+   "eth": 0.002508615088959519,
+   "txs": 1170,
+   "ageDays": 1757,
+   "nfts": 314,
+   "colls": 140,
+   "deploys": 0,
+   "idleDays": 5
+  }
+ }
+]

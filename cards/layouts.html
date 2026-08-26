@@ -1,0 +1,210 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FACETS: THE MIRROR — three card layouts</title>
+<style>
+/* Real data, real art, real proportions. Nothing on these three cards is a placeholder: the reading,
+   the beats and the artwork all come from the engine. The canvas is 4:5, which is the tallest ratio
+   X shows without cropping, and each layout carries the front card and the back card on that one
+   canvas exactly as gruff asked.
+   ⚠️ Brand is the locked one: warm paper, ink, royal blue, one accent per card taken from the facet.
+   The reference boards contributed the TYPOGRAPHY and the small UI furniture, not the Y2K collage. */
+:root{
+  --paper:#f5f5f7; --ink:#111114; --muted:#6e6e78; --line:#e3e3e8; --blue:#0101ef;
+  --NEWBIE:#37c878; --COLLECTOR:#0101ef; --DEGEN:#e23b6d; --BUILDER:#fe0000;
+  --OG:#454b54; --WHALE:#fcb913; --GHOST:#99a2ad;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:#26262b;color:var(--ink);
+  font:400 16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif}
+.mono{font-family:ui-monospace,"SF Mono",Consolas,monospace}
+.page{max-width:1500px;margin:0 auto;padding:34px 20px 90px}
+h1{color:#fff;font-size:12px;letter-spacing:.4em;font-weight:800;margin:0 0 4px}
+.sub{color:#9a9aa6;font-size:13px;margin:0 0 30px}
+.row{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
+.slot{flex:1 1 420px;min-width:330px;max-width:470px}
+.slot h2{color:#fff;font:800 11px/1 ui-monospace,Consolas,monospace;letter-spacing:.2em;margin:0 0 3px}
+.slot p{color:#9a9aa6;font-size:12.5px;margin:0 0 12px;min-height:34px}
+
+/* ── the shared 4:5 canvas ─────────────────────────────────────────────────────────────────────── */
+.canvas{position:relative;width:100%;aspect-ratio:4/5;background:var(--paper);overflow:hidden;
+  border-radius:4px;box-shadow:0 18px 50px rgba(0,0,0,.45);
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .05 0'/></filter><rect width='140' height='140' filter='url(%23n)'/></svg>");
+  container-type:inline-size}
+/* everything inside scales with the canvas so the layout holds at any size */
+.canvas *{font-size:inherit}
+.c{position:absolute}
+
+/* the physical card object */
+.card{background:#fff;border:1px solid var(--line);border-radius:2.6cqw;
+  box-shadow:0 1.4cqw 3.4cqw rgba(17,17,20,.13)}
+.back{background:#fbfbfd}
+
+.k{font:800 1.5cqw/1 ui-monospace,Consolas,monospace;letter-spacing:.16em;color:var(--muted)}
+.v{font-weight:700}
+.art{background:#0a0a0a;border-radius:1.4cqw;overflow:hidden;display:block}
+.art img{width:100%;height:100%;display:block;image-rendering:pixelated}
+.sig{font-family:"Segoe Script","Bradley Hand","Snell Roundhand",cursive;color:var(--blue)}
+.stamp{border:.28cqw solid currentColor;border-radius:99px;
+  font:800 1.5cqw/1 ui-monospace,Consolas,monospace;letter-spacing:.14em;padding:.9cqw 1.7cqw}
+.bar{height:.85cqw;border-radius:99px;background:#eaeaef;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px}
+.hair{height:1px;background:var(--line)}
+.tag{display:inline-block;border:1px solid var(--line);border-radius:99px;background:#fff;
+  font:700 1.3cqw/1 ui-monospace,Consolas,monospace;letter-spacing:.1em;color:var(--muted);padding:.7cqw 1.3cqw}
+</style></head><body>
+<div class="page">
+  <h1>FACETS: THE MIRROR</h1>
+  <p class="sub">Three layouts, one canvas each at 4:5. Real reading, real generated artwork, front and back together.
+     Data: gruffdzn.eth &middot; BUILDER &middot; rarer than 99.23%.</p>
+  <div class="row" id="row"></div>
+</div>
+
+<script>
+const D = {"profile":{"addr":"0x4730497622bdfd6eafe1f09fa22b3a0aca94a646","dominant":"BUILDER","runnerUp":"COLLECTOR","margin":0.031166205107525213,"axes":{"NEWBIE":0.24752441331343358,"COLLECTOR":0.9145702290010019,"DEGEN":0.8109452590809703,"BUILDER":0.9457364341085271,"OG":0.7389933658643566,"WHALE":0.7793234839529892,"GHOST":0.38310234055951725},"bars":{"NEWBIE":0.24752441331343358,"COLLECTOR":0.9145702290010019,"DEGEN":0.8109452590809703,"BUILDER":0.9457364341085271,"OG":0.7389933658643566,"WHALE":0.7793234839529892,"GHOST":0.38310234055951725},"share":{"NEWBIE":0.051351529618335,"COLLECTOR":0.18973716399894008,"DEGEN":0.16823907966529758,"BUILDER":0.1962029193692744,"OG":0.1533119065184228,"WHALE":0.16167881152716995,"GHOST":0.07947858930256003},"ordered":["BUILDER","COLLECTOR","DEGEN","WHALE","OG","GHOST","NEWBIE"],"spread":5.0967641216280555,"rarity":0.9923325262308313,"distance":1.112202399884133,"facts":{"OG":"first move: 23 October 2021","NEWBIE":"your chain is 1,758 days old","DEGEN":"30 transactions reverted. you paid for nothing 30 times.","BUILDER":"11 contracts created from this wallet, the first in 2023","WHALE":"65 pieces in verified collections","COLLECTOR":"93 collections, 249 pieces","GHOST":"last move 6 days ago"},"gaps":[]},"signals":{"addr":"0x4730497622bdfd6eafe1f09fa22b3a0aca94a646","ens":"gruffdzn.eth","eth":0.002508615088959519,"txs":1170,"smart":true,"ageDays":1758,"firstTs":1635028394,"idleDays":6,"touchedDays":6,"lifeRate":242.91808873720134,"recentRate":418.10915385398636,"failShare":0,"gasRate":0.21548525528779677,"inRatio":0.05,"noOutbound":false,"rowCount":1294,"historyComplete":true,"sent":1169,"received":125,"failCount":30,"gasEth":4.71743686284538,"maxValueEth":25,"volumeEth":411.55155968665935,"deploys":14,"directDeploys":11,"factoryDeploys":7,"deployedAddrs":["0xbd2d5d9fbb00aabb8a2b7a4951cbdfeb459265b4","0x6f348237a913e75557b6c1dd2c024c2580975636","0x0e64f1665b86bf3579148321d31cd7fde44cbc0d","0x8c94b846bb90f4a1c1c77b6baca2be7be1507dab","0x8ee9ffa0cf643f5bfc4b0046c12cb5036d8f802f","0x258f44d4ebe9f74481eedb6177b1d53f97128e1c","0x3be88adf4d68c32bad5707588c7d25e1af8644e0","0xf808228c5dd6e5b0a8f80c55c83c54f5520d15d5","0xa8b53f00155c2014043a02b4a890cb55ed89f0e6","0xa64137fe25869404fa0e719a6bf89ae5c935ba7d","0xcbbca0a0871a4f2a5567940c38a5c7fd6fbb6480"],"heldDeployedAddrs":["0x0e64f1665b86bf3579148321d31cd7fde44cbc0d","0x29457b2b50d3da1ca6c356f82212f65d283c09e6","0x5b5a4bcaedf305a6c85f83486a907a188224efa8","0xcbbca0a0871a4f2a5567940c38a5c7fd6fbb6480","0x258f44d4ebe9f74481eedb6177b1d53f97128e1c","0x8ee9ffa0cf643f5bfc4b0046c12cb5036d8f802f","0xe25af4d68841c62ba5a0bc8ccc6fe33580612f9d"],"earlyDeploy":0.5,"firstDeployTs":1673044019,"shape":{"firstTs":1635028394,"lastTs":1786399739,"peakYear":2023,"peakYearCount":471,"peakShare":0.36398763523956723,"yearsActive":6,"silenceDays":120,"silenceEndedTs":1728359447,"cameBack":true,"streakDays":13,"streakEndTs":1749427200,"busiestDayTs":1655424000,"busiestDayCount":41,"loudHour":20,"loudShare":0.2635239567233385,"sleepGuess":11,"topGwei":471.086552293,"topGweiAt":1676402315,"firstToTs":1635028594,"firstTo":"0x495f947276749ce646f68ac8c248420045cb7b5e","distinctContacts":198,"totalRows":1294},"tokenEth":0.004219558336836214,"whaleEth":0.006728173425795733,"nfts":249,"colls":93,"bluePieces":65,"blueColls":30,"nftValue":22.824948158999984,"collsRaw":140,"spamRate":0.33093525179856115,"collsExact":false,"pagesRead":2,"deployerKnown":123,"deployerCold":false,"names":[{"name":"KnownOriginDigitalAsset","held":1,"floor":16.989202329999998},{"name":"Synchronicity","held":1,"floor":0.19999},{"name":"Brandon James Scott Editions","held":1,"floor":0.06899},{"name":"SMOWL","held":1,"floor":0.0674899},{"name":"UNXPCTD","held":1,"floor":0.03499},{"name":"BRAINROT","held":2,"floor":0.0286},{"name":"Little Worlds","held":1,"floor":0.0132979},{"name":"0xdgb Editions","held":1,"floor":0.00854},{"name":"Teji Editions","held":1,"floor":0.008},{"name":"xo_editions","held":1,"floor":0.0069},{"name":"PEEPS","held":1,"floor":0.0063889},{"name":"Gruffters","held":6,"floor":0.00394979}]},"at":"2026-08-17T03:26:00.922Z","story":{"card":[{"key":"age","line":"You have been here for 1,758 days.","quip":"Long enough to call yourself a veteran, if anyone asks.","score":0.4349886668040388},{"key":"build","line":"You have created 11 contracts, the first in 2023.","quip":"Someone here actually ships.","score":0.9},{"key":"hold","line":"You hold 249 pieces across 93 collections.","quip":"That is a collection, not a wallet.","score":0.8224374495560935},{"key":"gastotal","line":"You have burned 4.72 ETH on gas.","quip":"Gone. Not to anyone. Just gone.","score":0.7732041969330106}],"report":[{"key":"age","line":"You have been here for 1,758 days.","quip":"Long enough to call yourself a veteran, if anyone asks.","score":0.4349886668040388},{"key":"first","line":"Your first move was on 23 October 2021.","quip":null,"score":0.25},{"key":"peak","line":"Your biggest year was 2023, with 471 moves.","quip":"More than a third of your whole life on chain, in twelve months.","score":0.5},{"key":"silence","line":"You went missing for 120 days.","quip":"Then you came back on 8 October 2024 like nobody would notice.","score":0.6},{"key":"hour","line":"Your hour is 20:00 UTC. That is when 26% of your life here happens.","quip":"Evening in Europe, lunch in New York, or three in the morning somewhere. Your secret is safe.","score":0.45},{"key":"busiest","line":"On 17 June 2022 you made 41 moves in one day.","quip":"We hope it worked out.","score":0.75},{"key":"gas","line":"The most you ever paid for one transaction was 471 gwei, on 14 February 2023.","quip":"Somebody wanted that mint badly.","score":0.5},{"key":"gastotal","line":"You have burned 4.72 ETH on gas.","quip":"Gone. Not to anyone. Just gone.","score":0.7732041969330106},{"key":"revert","line":"30 of your transactions reverted.","quip":"You have paid for nothing 30 times.","score":0.2573665773748197},{"key":"build","line":"You have created 11 contracts, the first in 2023.","quip":"Someone here actually ships.","score":0.9},{"key":"hold","line":"You hold 249 pieces across 93 collections.","quip":"That is a collection, not a wallet.","score":0.8224374495560935},{"key":"contacts","line":"You have spoken to 198 different addresses.","quip":null,"score":0.15},{"key":"volume","line":"411.6 ETH has moved through this wallet.","quip":"Real money went through here.","score":0.767958030669895}],"closing":{"line":"You are BUILDER. you ship.","sub":"Rarer than 99.23% of the wallets we have read, and 5.1 of 7 facets at once.","note":"None of this reaches the contract. FACETS hands you a face you did not choose."}},"cached":true,"resolvedFrom":null};
+const p = D.profile, s = D.signals, st = D.story;
+const dom = p.dominant;
+const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const short = a => a.slice(0, 6) + '...' + a.slice(-4);
+const beats = st.card;
+const axes = p.ordered;
+
+// ── LAYOUT A — THE LICENSE ────────────────────────────────────────────────────────────────────────
+// An identity document, because the project is about identity. The front is a card you could be asked
+// to produce at a door. The back sits behind it at an angle, the way a real one lands on a table.
+function A() {
+  return `
+  <div class="c card" style="left:5%;top:5.5%;width:82%;height:47%;padding:3.4cqw">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div class="k">FACETS &middot; THE MIRROR</div>
+        <div style="font:900 4.6cqw/1 sans-serif;letter-spacing:-.04em;margin-top:.9cqw;color:var(--${dom})">${dom}</div>
+      </div>
+      <div class="stamp" style="color:var(--${dom})">READING</div>
+    </div>
+    <div style="display:flex;gap:3cqw;margin-top:2.4cqw">
+      <div class="art" style="width:26%;aspect-ratio:1"><img src="art_gruff.png" alt=""></div>
+      <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:1.5cqw 2cqw;align-content:start">
+        ${[['HANDLE', s.ens || short(s.addr)], ['ON CHAIN SINCE', '23 Oct 2021'],
+           ['RARER THAN', (100*p.rarity).toFixed(2) + '%'], ['FACETS AT ONCE', p.spread.toFixed(1) + ' of 7']]
+          .map(([k, v]) => `<div><div class="k">${k}</div><div class="v" style="font-size:2.1cqw;margin-top:.5cqw">${esc(v)}</div></div>`).join('')}
+      </div>
+    </div>
+    <div class="hair" style="margin:2.4cqw 0 1.8cqw"></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end">
+      <div style="font-size:1.6cqw;color:var(--muted);max-width:62%">${esc(beats[1] ? beats[1].line : '')}</div>
+      <div style="text-align:right">
+        <div class="sig" style="font-size:3.4cqw;line-height:1">approved by facets</div>
+        <div class="k" style="margin-top:.4cqw">GTD SPOT 0417 OF 600</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="c card back" style="left:11%;top:55%;width:78%;height:38%;padding:3cqw;transform:rotate(-1.4deg)">
+    <div class="k">WHY THIS READING</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.1cqw 3cqw;margin-top:1.8cqw">
+      ${axes.map(f => `<div style="display:flex;align-items:center;gap:1.2cqw">
+        <div class="k" style="width:22%;color:${f===dom?'var(--'+f+')':'var(--muted)'}">${f}</div>
+        <div class="bar" style="flex:1"><i style="width:${Math.min(100,Math.round(100*p.bars[f]))}%;background:var(--${f})"></i></div>
+        <div class="k" style="width:11%;text-align:right;color:var(--ink)">${Math.round(100*p.axes[f])}</div></div>`).join('')}
+    </div>
+    <div class="hair" style="margin:2cqw 0 1.4cqw"></div>
+    <div style="font-size:1.5cqw;color:var(--muted);line-height:1.5">
+      Compared with 5,000 real Ethereum wallets, never a made up threshold.
+      <b style="color:var(--ink)">This is your reflection, not your mint.</b> The chain has not chosen yet.
+    </div>
+  </div>`;
+}
+
+// ── LAYOUT B — THE SPECIMEN ───────────────────────────────────────────────────────────────────────
+// The quiet one. Art large and unbothered, the seven axes as a precise readout beside it, the beats
+// numbered underneath like a museum label. Closest to the locked brand: hairlines, whitespace, one
+// accent, honest rather than mystical.
+function B() {
+  return `
+  <div class="c" style="left:7%;top:5%;width:86%;height:90%">
+    <div style="display:flex;justify-content:space-between;align-items:baseline">
+      <div class="k">FACETS &middot; THE MIRROR</div>
+      <div class="k">${esc(s.ens || short(s.addr))}</div>
+    </div>
+    <div class="hair" style="margin:1.4cqw 0 2.6cqw"></div>
+
+    <div style="display:flex;gap:3.4cqw;align-items:flex-start">
+      <div class="art" style="width:44%;aspect-ratio:1"><img src="art_gruff.png" alt=""></div>
+      <div style="flex:1">
+        <div style="font:900 6.4cqw/.9 sans-serif;letter-spacing:-.05em;color:var(--${dom})">${dom}</div>
+        <div style="font-size:1.8cqw;color:var(--muted);margin-top:1cqw">you ship</div>
+        <div style="margin-top:2.6cqw">
+          ${axes.slice(0,4).map(f => `<div style="display:flex;align-items:center;gap:1cqw;margin-bottom:.9cqw">
+            <div class="k" style="width:26%">${f}</div>
+            <div class="bar" style="flex:1"><i style="width:${Math.min(100,Math.round(100*p.bars[f]))}%;background:var(--${f})"></i></div></div>`).join('')}
+        </div>
+        <div style="margin-top:1.8cqw"><span class="tag">RARER THAN ${(100*p.rarity).toFixed(2)}%</span>
+          <span class="tag" style="margin-left:.6cqw">${p.spread.toFixed(1)} OF 7</span></div>
+      </div>
+    </div>
+
+    <div class="hair" style="margin:3cqw 0 2.2cqw"></div>
+    ${beats.map((b, i) => `<div style="display:flex;gap:1.8cqw;margin-bottom:1.6cqw">
+      <div class="k" style="width:4%;padding-top:.4cqw">${String(i+1).padStart(2,'0')}</div>
+      <div style="flex:1">
+        <div style="font-size:2.1cqw;font-weight:650;letter-spacing:-.01em">${esc(b.line)}</div>
+        ${b.quip ? `<div style="font-size:1.6cqw;color:var(--muted);font-style:italic;margin-top:.3cqw">${esc(b.quip)}</div>` : ''}
+      </div></div>`).join('')}
+
+    <div class="hair" style="margin:.6cqw 0 1.6cqw"></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end">
+      <div style="font-size:1.45cqw;color:var(--muted);max-width:60%">Your reflection, not your mint. The chain has not chosen yet.</div>
+      <div class="sig" style="font-size:3cqw;line-height:1">approved by facets</div>
+    </div>
+  </div>`;
+}
+
+// ── LAYOUT C — THE POSTER ─────────────────────────────────────────────────────────────────────────
+// The loud one. Type leads, the artwork is a panel inside it, the beats run as short stacked lines.
+// This is the one that survives being 400 pixels wide in a timeline.
+function C() {
+  return `
+  <div class="c" style="left:0;top:0;width:100%;height:100%">
+    <div style="position:absolute;left:6%;top:5%;right:6%">
+      <div class="k">FACETS &middot; THE MIRROR &middot; ${esc(s.ens || short(s.addr))}</div>
+      <div style="font:900 15cqw/.82 sans-serif;letter-spacing:-.06em;margin-top:1.4cqw;color:var(--${dom})">${dom}</div>
+      <div style="font-size:2.2cqw;font-weight:600;color:var(--ink);margin-top:1cqw">
+        rarer than ${(100*p.rarity).toFixed(2)}% &middot; ${p.spread.toFixed(1)} of 7 facets at once</div>
+    </div>
+
+    <div class="c art" style="left:6%;top:34%;width:36%;aspect-ratio:1"><img src="art_gruff.png" alt=""></div>
+
+    <div class="c" style="right:6%;top:34%;width:50%">
+      ${axes.map(f => `<div style="display:flex;align-items:center;gap:1cqw;margin-bottom:.85cqw">
+        <div class="k" style="width:30%;color:${f===dom?'var(--'+f+')':'var(--muted)'}">${f}</div>
+        <div class="bar" style="flex:1"><i style="width:${Math.min(100,Math.round(100*p.bars[f]))}%;background:var(--${f})"></i></div></div>`).join('')}
+    </div>
+
+    <div class="c" style="left:6%;right:6%;top:59%">
+      ${beats.slice(0,3).map(b => `<div style="margin-bottom:1.9cqw">
+        <div style="font-size:2.6cqw;font-weight:700;letter-spacing:-.02em;line-height:1.15">${esc(b.line)}</div>
+        ${b.quip ? `<div style="font-size:1.8cqw;color:var(--muted);font-style:italic;margin-top:.25cqw">${esc(b.quip)}</div>` : ''}
+      </div>`).join('')}
+    </div>
+
+    <div class="c card" style="left:6%;right:6%;bottom:4.5%;padding:2.2cqw 2.6cqw;display:flex;
+         justify-content:space-between;align-items:center">
+      <div style="font-size:1.5cqw;color:var(--muted);max-width:58%">
+        Read against 5,000 real wallets. <b style="color:var(--ink)">Your reflection, not your mint.</b></div>
+      <div style="text-align:right">
+        <div class="sig" style="font-size:3.2cqw;line-height:1">approved by facets</div>
+        <div class="k" style="margin-top:.3cqw">GTD 0417 / 600</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+const LAYOUTS = [
+  ['A · THE LICENSE', 'An identity document, because the project is about identity. Back card lands behind it at an angle, like the reference board.', A],
+  ['B · THE SPECIMEN', 'The quiet one. Art large, axes as a readout, beats numbered like a museum label. Closest to the locked brand.', B],
+  ['C · THE POSTER', 'The loud one. Type leads and the art is a panel inside it. Survives being 400 pixels wide in a timeline.', C],
+];
+document.getElementById('row').innerHTML = LAYOUTS.map(([t, d, fn]) =>
+  `<div class="slot"><h2>${t}</h2><p>${d}</p><div class="canvas">${fn()}</div></div>`).join('');
+</script>
+</body></html>

@@ -1,0 +1,190 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>THE MIRROR — card, faz 1</title>
+<link rel="stylesheet" href="faz1.css">
+</head><body>
+<div class="page">
+
+  <div class="top">
+    <h1>THE MIRROR</h1><span class="ph">FAZ 1 &middot; THE CARD</span>
+  </div>
+  <p class="lead">One card, one reading. Everything on it is real engine output: the facet, the score,
+  the rank, the artwork drawn from the address, this wallet's own most extreme figures, and the closest
+  twin measured against the 5,000 wallet reference population. <b>The only hand-written values are the
+  name and the @handle</b>, because nothing on chain carries them, and that is exactly what a person
+  types in after signing. gruffdzn.eth has since been replayed field by field from raw Etherscan rows
+  and every number matched.</p>
+
+  <div class="ctrls">
+    <span class="lab">WALLET</span>
+    <div class="seg" id="who"></div>
+    <span class="lab" style="margin-left:12px">STATE</span>
+    <div class="seg" id="state">
+      <button data-s="0">UNSIGNED</button><button data-s="1">SIGNED</button>
+    </div>
+    <span class="lab" style="margin-left:12px">SIZE</span>
+    <div class="seg" id="size">
+      <button data-z="620" class="on">LARGE</button><button data-z="440">FIT</button><button data-z="330">SMALL</button>
+    </div>
+  </div>
+
+  <h2 class="sec">00 &middot; ALL EIGHT ARE IN THE CARD</h2>
+  <p class="sub">Every treatment ships. Which one a wallet gets is <b>drawn from its address</b>, so it
+  is a trait like any other: the same wallet gets the same word forever, and a card someone shares
+  still looks like that when a stranger clicks through. Measured across 20,000 addresses the draw is
+  even to within 0.02 of a percentage point. The one this wallet drew is marked. These panels are
+  620px wide, the same width the card is drawn at below, so what you see here is card scale.</p>
+  <div id="words" style="display:grid;grid-template-columns:repeat(auto-fill,620px);gap:22px;margin-bottom:10px"></div>
+
+  <h2 class="sec">01 &middot; THE CARD</h2>
+  <p class="sub">One card now. The other three are out of the page so nothing competes with it.</p>
+  <div class="grid3" id="three"></div>
+
+  <h2 class="sec">02 &middot; ONE BASE PER FACET</h2>
+  <p class="sub">The base is not a separate design, it is the facet colour driving the whole card. Seven
+  facets, seven bases, and nobody has to maintain seven files. Five real wallets below, three facets
+  between them.</p>
+  <div class="row5" id="bases"></div>
+
+  <h2 class="sec">03 &middot; WHAT IT LOOKS LIKE IN A TIMELINE</h2>
+  <p class="sub">504px wide, which is what X gives a single image on the web. This is the only size that
+  matters for whether a card spreads. Read it the way a stranger scrolling past would: one second, no
+  zoom.</p>
+  <div class="grid3" id="feed"></div>
+
+  <h2 class="sec">04 &middot; WHAT IS MEASURED, AND WHAT IS NOT</h2>
+  <div id="ledger" style="font-size:13px;color:var(--dim);max-width:960px"></div>
+
+</div>
+
+<script src="faz1_data.js"></script>
+<script src="facetword.js"></script>
+<script src="faz1_layouts.js"></script>
+<script>
+const CACHE_URL = '../site/cache_v2.json';
+// ?state=0 and ?who=<addr> exist so a headless screenshot can reach a state a click would reach
+const QS = new URLSearchParams(location.search);
+// ?tie=1 forces the near-tie treatment so it can be judged on a wallet that is not one
+window.FAZ1_TIE = QS.get('tie') === '1';
+let CACHE = null, signed = QS.get('state') !== '0', layout = 'L2b', zoom = 620;
+let addr = FAZ1.order.indexOf(QS.get('who')) >= 0 ? QS.get('who') : FAZ1.order[0];
+
+const el = s => document.querySelector(s);
+const label = a => (CACHE && CACHE[a] && CACHE[a].signals.ens) || (a.slice(0, 6) + '…');
+
+function viewOf(a) {
+  return FAZ1_VIEW(CACHE[a], signed, FAZ1.typed[a], FAZ1.twin[a], FAZ1.near[a], FAZ1.rank[a]);
+}
+
+function drawThree() {
+  const v = viewOf(addr);
+  el('#three').innerHTML = ['L2b'].map(k => {
+    const m = FAZ1_META[k];
+    return '<div class="slot"><h3>' + k + ' &middot; ' + m[0] + '</h3>' +
+      '<p class="note">' + m[2] + '</p>' +
+      '<div style="max-width:' + zoom + 'px">' + FAZ1_CARDS[k](v) + '</div>' +
+      '<div class="dim">' + m[1] + '</div></div>';
+  }).join('');
+}
+
+function drawBases() {
+  el('#bases').innerHTML = FAZ1.order.map(a => {
+    const v = viewOf(a);
+    return '<div class="slot"><h3 style="color:var(--' + v.dom + ')">' + v.dom + '</h3>' +
+      '<p class="note" style="min-height:0;margin-bottom:8px">' + label(a) + '</p>' +
+      FAZ1_CARDS[layout](v) + '</div>';
+  }).join('');
+}
+
+function drawFeed() {
+  const v = viewOf(addr);
+  el('#feed').innerHTML = ['L2b'].map(k =>
+    '<div class="slot"><h3>' + k + ' &middot; ' + FAZ1_META[k][0] + ' at 504px</h3>' +
+    '<p class="note" style="min-height:0">what a stranger scrolling past actually sees</p>' +
+    '<div style="max-width:504px;background:#000;border:1px solid #2f3336;border-radius:16px;padding:12px 14px">' +
+      '<div style="display:flex;gap:10px;align-items:center;margin-bottom:9px">' +
+        '<div style="width:34px;height:34px;border-radius:50%;background:#2f3336"></div>' +
+        '<div><div style="font-size:14px;font-weight:700;color:#e7e9ea">' +
+          (signed && FAZ1.typed[addr] ? FAZ1.typed[addr].name : label(addr)) +
+          '</div><div style="font-size:12px;color:#71767b">@' +
+          (signed && FAZ1.typed[addr] ? FAZ1.typed[addr].handle : 'someone') + ' · 2h</div></div>' +
+      '</div>' +
+      '<div style="font-size:14px;color:#e7e9ea;margin-bottom:10px">just ran my wallet through THE MIRROR</div>' +
+      '<div style="border-radius:14px;overflow:hidden">' + FAZ1_CARDS[k](v) + '</div>' +
+    '</div></div>').join('');
+}
+
+function drawLedger() {
+  const t = FAZ1.twinPop;
+  const rows = [
+    ['facet, score, the seven axes, rarity', 'MEASURED',
+     'engine v2 against 5,000 real Ethereum wallets. 634 of 635 wallets got a distinct rarity value, so it is worth putting on a card.'],
+    ['the artwork', 'MEASURED',
+     'the real FACETS renderer, seeded by the address. The token id is pushed into the billions so a Mirror piece can never collide with a real token.'],
+    ['the beats', 'MIXED',
+     'age, holdings, gas, reverts and deploys are measured against the population. Silence, streaks, peak year and gas price fall back to hand-set thresholds because time shape was never collected for the reference wallets.'],
+    ['closest twin', 'MEASURED 2026-08-26',
+     'median nearest-neighbour distance ' + t.median + ' against ' + t.randomMedian + ' for two random wallets, so a twin is genuinely close. p10 ' + t.p10 + ' to p90 ' + t.p90 + ' is a 17x spread, so closeness varies between people and the line says something different to each of them.'],
+    ['the name and the @handle', 'TYPED BY THE PERSON',
+     'no chain source exists. Measured on 613 wallets: OpenSea yielded an X account for 15%, ENS for 1.6%, and the OpenSea route closed on 2026-08-15. Shown only on a signed card.'],
+    ['your rank as a FACET', 'MEASURED 2026-08-26',
+     'position on your own axis among the 5,000 reference wallets. Every wallet gets a distinct integer, so it is comparable in a way a percentile of a distance is not. It ranks against the FIXED reference population, never against Mirror visitors, so it does not move as the site gets traffic.'],
+    ['gruffdzn.eth, end to end', 'VERIFIED LIVE',
+     'wrapped/verify.cjs replays the wallet from raw Etherscan V2 rows with arithmetic written nowhere near the engine, truncates to the stored read date, and every field matched: 1,294 rows, 1,169 sent, 125 received, 30 reverted, 4.72 ETH of gas, 11 contracts, 1,758 days.'],
+    ['the reader itself', 'BROKEN RIGHT NOW',
+     'Etherscan V1 answers every call with "You are using a deprecated V1 endpoint". Every history number comes from there, so a live read today returns nothing. The same key works on V2. Not yet fixed in the engine.']
+  ];
+  el('#ledger').innerHTML = rows.map(r =>
+    '<div style="display:grid;grid-template-columns:200px 150px 1fr;gap:14px;padding:11px 0;border-top:1px solid rgba(255,255,255,.09)">' +
+    '<div style="color:#e9e9ef;font-weight:600">' + r[0] + '</div>' +
+    '<div class="m" style="font-size:10px;letter-spacing:.14em;color:' +
+      (r[1].indexOf('MEASURED') === 0 ? '#37c878' : r[1] === 'MIXED' ? '#fcb913' : '#99a2ad') + '">' + r[1] + '</div>' +
+    '<div>' + r[2] + '</div></div>').join('');
+}
+
+function drawWords() {
+  if (QS.get('lab') === '0') { el('#words').closest('.page') && (el('#words').previousElementSibling.previousElementSibling.style.display='none'); el('#words').previousElementSibling.style.display='none'; el('#words').style.display='none'; return; }
+  const v = viewOf(addr);
+  const drew = FACETWORD.pick(addr);
+  el('#words').innerHTML = FACETWORD.ORDER.map((k, i) => {
+    const L = FACETWORD.LABEL[k];
+    return '<div class="slot">' +
+      '<h3>' +
+        String(i + 1).padStart(2, '0') + ' &middot; ' + L[0] +
+        (k === drew ? ' <span style="color:#fff;background:var(--' + v.dom + ');padding:2px 6px;border-radius:3px">THIS WALLET DREW THIS</span>' : '') + '</h3>' +
+      '<p class="note" style="min-height:34px">' + L[1] + '</p>' +
+      // the real card ground, the real container width, so cqw units resolve exactly as on the card
+      '<div style="background:#0b0b0e;border-radius:10px;padding:22px 20px 26px;container-type:inline-size;' +
+      'border:1px solid ' + (k === drew ? 'var(--' + v.dom + ')' : 'rgba(255,255,255,.10)') + '">' +
+        '<div class="m" style="font-size:1.35cqw;color:#9a9aa8;margin-bottom:1.4cqw">DOMINANT FACET</div>' +
+        FACETWORD.T[k](v.dom, 'var(--' + v.dom + ')', 'var(--' + v.runnerUp + ')', v.art, 54) +
+      '</div></div>';
+  }).join('');
+}
+
+function all() { drawWords(); drawThree(); drawBases(); drawFeed(); }
+
+function seg(id, attr, fn) {
+  el(id).addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    [...el(id).children].forEach(x => x.classList.toggle('on', x === b));
+    fn(b.dataset[attr]);
+  });
+}
+
+fetch(CACHE_URL).then(r => r.json()).then(c => {
+  CACHE = c;
+  el('#who').innerHTML = FAZ1.order.map(a =>
+    '<button data-a="' + a + '"' + (a === addr ? ' class="on"' : '') + '>' + label(a) + '</button>').join('');
+  [...el('#state').children].forEach(b => b.classList.toggle('on', (b.dataset.s === '1') === signed));
+  seg('#who', 'a', v => { addr = v; drawWords(); drawThree(); drawFeed(); });
+  seg('#state', 's', v => { signed = v === '1'; all(); });
+  seg('#size', 'z', v => { zoom = +v; drawThree(); });
+  all(); drawLedger();
+  document.body.dataset.ready = '1';
+}).catch(e => {
+  document.body.innerHTML = '<pre style="color:#fff;padding:30px">' + e.message +
+    '\n\ncache not found at ' + CACHE_URL + '</pre>';
+});
+</script>
+</body></html>

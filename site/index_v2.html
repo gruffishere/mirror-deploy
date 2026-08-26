@@ -1,0 +1,331 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FACETS WRAPPED — engine v2 bench</title>
+<style>
+/* The LOCKED brand palette, same values the cards were generated against: warm paper, royal blue,
+   ink, and the seven facet accents. Drift here would show up as a page that does not match its own
+   output. */
+:root{
+  --paper:#f5f5f7; --ink:#111114; --muted:#6e6e78; --line:#e3e3e8; --blue:#0101ef;
+  --NEWBIE:#37c878; --COLLECTOR:#0101ef; --DEGEN:#e23b6d; --BUILDER:#fe0000;
+  --OG:#454b54; --WHALE:#fcb913; --GHOST:#99a2ad;
+  --accent:var(--blue);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper); color:var(--ink);
+  font:400 16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .045 0'/></filter><rect width='140' height='140' filter='url(%23n)'/></svg>");
+}
+.mono{font-family:ui-monospace,"SF Mono",Consolas,monospace}
+.wrap{max-width:680px;margin:0 auto;padding:44px 20px 100px}
+
+header{border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:26px}
+h1{margin:0;font-size:12px;letter-spacing:.42em;font-weight:800}
+header .sub{margin:7px 0 0;font-size:12px;letter-spacing:.16em;color:var(--muted);font-weight:600}
+header .bench{display:inline-block;margin-top:12px;padding:3px 8px;border:1px solid var(--line);
+  border-radius:5px;background:#fff;font:700 10px/1.4 ui-monospace,Consolas,monospace;
+  letter-spacing:.1em;color:var(--muted)}
+
+form{display:flex;gap:10px;margin:0 0 10px}
+input{flex:1;min-width:0;padding:13px 14px;border:1px solid var(--line);border-radius:9px;background:#fff;
+  font:500 14px/1 ui-monospace,Consolas,monospace;color:var(--ink)}
+input:focus{outline:none;border-color:var(--accent)}
+button{padding:13px 20px;border:none;border-radius:9px;background:var(--ink);color:#fff;
+  font:700 13px/1 inherit;letter-spacing:.06em;cursor:pointer}
+button:disabled{opacity:.4;cursor:default}
+.samples{font-size:12px;color:var(--muted);margin-bottom:34px}
+.samples a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent;cursor:pointer}
+.samples a:hover{border-bottom-color:var(--accent)}
+
+.msg{padding:14px 16px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:14px}
+.msg.err{border-color:#e23b6d;color:#c2214f}
+
+/* ── the headline ─────────────────────────────────────────────────────────────────────────────── */
+.head{margin:0 0 30px}
+.head .addr{font:600 12px/1 ui-monospace,Consolas,monospace;color:var(--muted);letter-spacing:.02em;
+  word-break:break-all}
+.head .facet{margin:12px 0 0;font-weight:900;letter-spacing:-.045em;line-height:.92;
+  font-size:clamp(56px,13vw,104px);color:var(--dom)}
+.head .rarity{margin:14px 0 0;font-size:19px;font-weight:600}
+.head .rarity b{color:var(--dom)}
+.head .spread{margin:5px 0 0;font-size:14px;color:var(--muted)}
+
+/* ── the seven bars ───────────────────────────────────────────────────────────────────────────── */
+.axes{border-top:1px solid var(--line)}
+.ax{display:grid;grid-template-columns:96px 1fr 46px;gap:14px;align-items:center;
+  padding:13px 0;border-bottom:1px solid var(--line)}
+.ax .name{font:800 11px/1 ui-monospace,Consolas,monospace;letter-spacing:.14em}
+.ax .track{position:relative;height:7px;border-radius:4px;background:#e9e9ee;overflow:hidden}
+.ax .fill{position:absolute;inset:0 auto 0 0;border-radius:4px;width:0;transition:width .75s cubic-bezier(.2,.8,.2,1)}
+.ax .pct{text-align:right;font:700 13px/1 ui-monospace,Consolas,monospace;color:var(--muted)}
+.ax .fact{grid-column:2 / span 2;margin-top:-4px;font-size:13px;color:var(--muted)}
+.ax.dom .name{color:var(--dom)}
+.ax.dom .pct{color:var(--ink)}
+.ax.zero .name,.ax.zero .pct{opacity:.42}
+
+/* ── panels ───────────────────────────────────────────────────────────────────────────────────── */
+.panel{margin-top:32px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:20px 22px}
+.panel h2{margin:0 0 12px;font:800 10px/1 ui-monospace,Consolas,monospace;letter-spacing:.2em;color:var(--muted)}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px 18px;font:500 13px/1.5 ui-monospace,Consolas,monospace}
+.kv .k{color:var(--muted)}
+.kv .v{text-align:right;font-weight:700}
+.note{margin-top:14px;font-size:13px;color:var(--muted)}
+.holdings{margin-top:10px;font-size:13px;color:var(--muted);line-height:1.7}
+.holdings span{display:inline-block;border:1px solid var(--line);border-radius:20px;padding:2px 10px;margin:0 5px 6px 0;color:var(--ink)}
+/* ── the story: the part a person actually reads ─────────────────────────────────────────────── */
+.story{margin:0 0 34px}
+.beat{padding:16px 0;border-bottom:1px solid var(--line)}
+.beat:first-child{border-top:1px solid var(--line)}
+.beat .fact{font-size:20px;font-weight:650;letter-spacing:-.015em;line-height:1.3}
+.beat .quip{margin-top:5px;font-size:14px;color:var(--muted);font-style:italic}
+.report{margin-top:10px}
+.report summary{cursor:pointer;font:700 11px/1 ui-monospace,Consolas,monospace;letter-spacing:.16em;
+  color:var(--muted);padding:12px 0;list-style:none}
+.report summary::-webkit-details-marker{display:none}
+.report summary:hover{color:var(--accent)}
+.report .beat .fact{font-size:16px;font-weight:600}
+.disclaimer{margin-top:30px;padding:16px 18px;border:1px dashed var(--line);border-radius:12px;
+  font-size:13px;color:var(--muted)}
+.disclaimer b{color:var(--ink)}
+.meta{margin-top:22px;font:500 11px/1.6 ui-monospace,Consolas,monospace;color:var(--muted)}
+</style></head><body>
+<div class="wrap">
+  <header>
+    <h1>FACETS WRAPPED</h1>
+    <p class="sub">who are you, on-chain?</p>
+    <span class="bench">ENGINE v2 BENCH &middot; deterministic, no draw</span>
+  </header>
+
+  <form id="f">
+    <input id="a" placeholder="0x... or a name.eth" autocomplete="off" spellcheck="false">
+    <button id="go">read</button>
+  </form>
+  <p class="samples">try
+    <a data-a="0xd387a6e4e84a6c86bd90c158c6028a58cc8ac459">pranksy</a> &middot;
+    <a data-a="0x4730497622bdfd6eafe1f09fa22b3a0aca94a646">gruff</a> &middot;
+    <a data-a="0x54be3a794282c030b15e43ae2bb182e14c409c5e">dingaling</a> &middot;
+    <a data-a="0x250dc85178fb6859e9ee02c925d46aab946a55e7">weitsman</a> &middot;
+    <a data-a="vitalik.eth">vitalik.eth</a>
+  </p>
+  <p class="samples" style="margin-top:-24px">a big wallet is read from its first transaction to today, which can take
+    a few seconds the first time. after that it is cached.</p>
+
+  <div id="out"></div>
+<style>
+.cardwrap{margin-top:34px;border-top:1px solid var(--line);padding-top:20px}
+.cardbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.cardlab{font:800 10px/1 ui-monospace,Consolas,monospace;letter-spacing:.24em;color:var(--muted);
+         margin-right:6px}
+.cardbtn{font:700 10px/1 ui-monospace,Consolas,monospace;letter-spacing:.12em;text-transform:uppercase;
+         padding:8px 12px;border-radius:99px;border:1px solid var(--line);background:none;
+         color:var(--muted);cursor:pointer;text-decoration:none}
+.cardbtn:hover{color:var(--ink);border-color:var(--muted)}
+.cardbtn.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.cardbtn.open{margin-left:auto}
+/* the frame is the card at its real size; only the transform makes it fit here */
+.cardstage{width:100%;max-width:460px;overflow:hidden}
+.cardstage iframe{width:1080px;height:1350px;border:0;transform-origin:top left;display:block}
+</style>
+</div>
+
+<script>
+const FACETS = ['NEWBIE','COLLECTOR','DEGEN','BUILDER','OG','WHALE','GHOST'];
+const TAGLINE = {
+  NEWBIE:'the story just began', COLLECTOR:'taste is a signal', DEGEN:'all in, always',
+  BUILDER:'you ship', OG:'you were here first', WHALE:'the tide moves with you',
+  GHOST:'seen everything, said nothing',
+};
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num = v => v === null || v === undefined ? 'unknown' : Number(v).toLocaleString('en-US');
+
+const out = document.getElementById('out'), input = document.getElementById('a'), btn = document.getElementById('go');
+document.querySelectorAll('.samples a').forEach(el =>
+  el.onclick = () => { input.value = el.dataset.a; run(); });
+document.getElementById('f').onsubmit = e => { e.preventDefault(); run(); };
+
+/* ── THE CARD ──────────────────────────────────────────────────────────────────────────────────────
+   The five layouts have existed since 2026-08-16 but only ever against `data_gruff.json`, so nobody
+   had seen one built from a reading they had just asked for. They are wired to the live result now.
+   ⚠️ ALL FIVE, NOT ONE. Which layout ships is not a decision anybody has recorded, and judging that
+   against a single hard-coded wallet is how you pick the one that happens to suit gruff's own numbers.
+   ⚠️ The card renders at its real 1080x1350 inside the frame and is SCALED DOWN by transform, never
+   resized. A card laid out at a smaller size is a different card: the type would reflow. */
+const CARD_LAYOUTS_LIST = [
+  ['A', 'the report'], ['B', 'the split'], ['C', 'the stack'],
+  ['L', 'the licence'], ['P', 'the poster']
+];
+let cardLayout = 'L';
+function renderCard(j) {
+  const addr = (j.profile && j.profile.addr) || '';
+  if (!addr) return;
+  const data = encodeURIComponent('/api/read?addr=' + addr);
+  const wrap = document.createElement('div');
+  wrap.className = 'cardwrap';
+  wrap.innerHTML =
+    '<div class="cardbar">' +
+      '<span class="cardlab">THE CARD</span>' +
+      CARD_LAYOUTS_LIST.map(l =>
+        '<button type="button" class="cardbtn' + (l[0] === cardLayout ? ' on' : '') +
+        '" data-l="' + l[0] + '">' + l[1] + '</button>').join('') +
+      '<a class="cardbtn open" target="_blank" rel="noopener" href="/cards/card.html?layout=' +
+        cardLayout + '&data=' + data + '">open full size</a>' +
+    '</div>' +
+    '<div class="cardstage"><iframe title="the card" src="/cards/card.html?layout=' +
+      cardLayout + '&data=' + data + '"></iframe></div>';
+  out.appendChild(wrap);
+
+  const stage = wrap.querySelector('.cardstage');
+  const frame = wrap.querySelector('iframe');
+  function fit() {
+    const w = stage.clientWidth || 420;
+    const k = w / 1080;
+    frame.style.transform = 'scale(' + k + ')';
+    stage.style.height = Math.round(1350 * k) + 'px';
+  }
+  fit();
+  addEventListener('resize', fit);
+  wrap.querySelectorAll('.cardbtn[data-l]').forEach(b => {
+    b.onclick = () => {
+      cardLayout = b.dataset.l;
+      wrap.querySelectorAll('.cardbtn[data-l]').forEach(x => x.classList.toggle('on', x === b));
+      frame.src = '/cards/card.html?layout=' + cardLayout + '&data=' + data;
+      const open = wrap.querySelector('.cardbtn.open');
+      if (open) open.href = '/cards/card.html?layout=' + cardLayout + '&data=' + data;
+    };
+  });
+}
+
+async function run() {
+  const addr = input.value.trim();
+  if (!addr) return;
+  btn.disabled = true;
+  out.innerHTML = '<div class="msg">reading the chain ...</div>';
+  try {
+    const r = await fetch('/api/read?addr=' + encodeURIComponent(addr));
+    const j = await r.json();
+    if (j.error) { out.innerHTML = '<div class="msg err">' + esc(j.error) + '</div>'; return; }
+    render(j);
+    renderCard(j);
+  } catch (e) {
+    out.innerHTML = '<div class="msg err">' + esc(e.message) + '</div>';
+  } finally { btn.disabled = false; }
+}
+
+function render(j) {
+  const p = j.profile, s = j.signals, dom = p.dominant;
+  const ordered = p.ordered;
+
+  const bars = ordered.map(f => {
+    const pctVal = Math.round(100 * p.axes[f]);
+    const zero = p.bars[f] <= 0.005;
+    // ⚠️ BUILDER sits at zero for 98% of wallets (measured, top-two share 1.9%). An empty bar with no
+    // explanation reads as a broken page, so the rarity is stated rather than left silent.
+    const fact = f === 'BUILDER' && zero
+      ? 'almost nobody deploys. that is what makes it rare.'
+      : (p.facts[f] || '');
+    return '<div class="ax ' + (f === dom ? 'dom' : '') + (zero ? ' zero' : '') + '">' +
+      '<div class="name">' + f + '</div>' +
+      '<div class="track"><div class="fill" data-w="' + (100 * p.bars[f]) + '" style="background:var(--' + f + ')"></div></div>' +
+      '<div class="pct">' + pctVal + '</div>' +
+      (fact ? '<div class="fact">' + esc(fact) + '</div>' : '') +
+      '</div>';
+  }).join('');
+
+  const kv = [
+    ['history read', s.rowCount === null ? 'failed' : num(s.rowCount) + ' transactions' +
+      (s.historyComplete === false ? '  (truncated at the cap)' : '  (complete)')],
+    ['ETH moved through, all time', s.volumeEth === null || s.volumeEth === undefined ? 'unknown' : s.volumeEth.toFixed(2) + ' ETH'],
+    ['pieces in verified collections', num(s.bluePieces) + ' across ' + num(s.blueColls)],
+    ['ETH balance', s.eth === null ? 'unknown' : s.eth.toFixed(4) + ' ETH'],
+    ['tokens (majors, stables)', s.tokenEth === null ? 'unknown' : s.tokenEth.toFixed(4) + ' ETH'],
+    ['transactions sent / received', num(s.sent) + ' / ' + num(s.received)],
+    ['wallet age', s.ageDays === null ? 'unknown' : num(s.ageDays) + ' days'],
+    ['rate now / lifetime', (s.recentRate === null ? '?' : Math.round(s.recentRate)) + ' / ' +
+      (s.lifeRate === null ? '?' : Math.round(s.lifeRate)) + ' per year'],
+    ['reverted, all time', num(s.failCount)],
+    ['gas burned, all time', s.gasEth === null ? 'unknown' : s.gasEth.toFixed(4) + ' ETH'],
+    ['largest move ever', s.maxValueEth === null ? 'unknown' : s.maxValueEth.toFixed(2) + ' ETH'],
+    ['idle since last send', s.idleDays === null ? 'never sent' : num(s.idleDays) + ' days'],
+    ['contracts created', num(s.deploys) + '  (' + num(s.directDeploys) + ' direct, ' + num(s.factoryDeploys) + ' via a factory)'],
+    ['collections (spam removed)', (s.collsExact === false ? 'at least ' : '') + num(s.colls) +
+      (s.collsRaw ? '  of ' + num(s.collsRaw) + ' before spam' : '')],
+    ['pieces (spam removed)', (s.collsExact === false ? 'at least ' : '') + num(s.nfts)],
+    ['smart account', s.smart ? 'yes' : 'no'],
+  ].map(([k, v]) => '<div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div>').join('');
+
+  const spamNote = s.collsExact === false
+    ? '<p class="note">⚠️ This wallet holds ' + num(s.collsRaw) + ' collections and the first ' +
+      num(s.pagesRead * 100) + ' were counted, so the counts above are floors rather than totals. ' +
+      'Nothing is projected from the sample: page order is not random and the deepest holdings come first, ' +
+      'so scaling a partial count up produced 153,080 pieces for a wallet holding a tenth of that.</p>'
+    : '';
+
+  // ⚠️ Ranked by floor price times copies held, NOT by how many copies you hold. Ranking by count put
+  // a 0.0009 ETH floor collection above a 1.7 ETH one, which is backwards for exactly the wallets
+  // people want to show off.
+  const holdings = (s.names && s.names.length)
+    ? '<div class="panel"><h2>WHAT YOU ACTUALLY HOLD</h2><div class="holdings">' +
+      s.names.slice(0, 10).map(n => '<span>' + esc(n.name) + (n.held > 1 ? ' &times;' + n.held : '') +
+        (n.floor >= 0.01 ? ' <b style="opacity:.55;font-weight:600">floor ' + n.floor.toFixed(2) + '&nbsp;E</b>' : '') +
+        '</span>').join('') +
+      '<p class="note" style="margin-top:4px">safelisted collections only, ordered by the collection floor. ' +
+      'that floor is the collection\'s, not your piece\'s, and this page does not put a value on your wallet.</p>' +
+      '</div></div>'
+    : '';
+
+  // ⚠️ A wallet we could not fully read must SAY so. Every missing signal silently defaults to the
+  // population midpoint, which turns a failed request into a confident looking profile.
+  const gapNote = (p.gaps && p.gaps.length)
+    ? '<div class="msg err" style="margin-bottom:22px">Read with gaps: ' + esc(p.gaps.join(', ')) +
+      '. The missing parts are scored at the population average, so treat this reading as partial.</div>'
+    : '';
+
+  // ── the story. Four beats on the card, everything else behind the report ──────────────────────
+  const beatHtml = b => '<div class="beat"><div class="fact">' + esc(b.line) + '</div>' +
+    (b.quip ? '<div class="quip">' + esc(b.quip) + '</div>' : '') + '</div>';
+  const st = j.story;
+  const storyHtml = st ? '<div class="story">' + st.card.map(beatHtml).join('') +
+    '<details class="report"><summary>THE FULL REPORT &middot; ' + st.report.length + ' THINGS THE CHAIN REMEMBERS</summary>' +
+    st.report.map(beatHtml).join('') + '</details></div>' : '';
+
+  out.innerHTML = gapNote + storyHtml +
+    '<div class="head" style="--dom:var(--' + dom + ')">' +
+      '<div class="addr">' + (s.ens ? '<b style="color:var(--ink)">' + esc(s.ens) + '</b> &middot; ' : '') + esc(p.addr) + '</div>' +
+      '<div class="facet">' + dom + '</div>' +
+      // ⚠️ TWO DECIMALS, NOT ONE. One decimal leaves only 1,000 possible headlines and 5,000 wallets
+      // collide hard: 37 of them shared "74.2 NEWBIE" exactly. Two decimals measured 4,933 distinct
+      // out of 5,000. The earlier "634 of 635 are unique" check could not fail, because 635 wallets
+      // into 1,000 slots is unique by arithmetic rather than by design.
+      '<div class="rarity">rarer than <b>' + (100 * p.rarity).toFixed(2) + '%</b> of the wallets read</div>' +
+      '<div class="spread">' + esc(TAGLINE[dom]) + ' &middot; you are ' + p.spread.toFixed(1) + ' of 7 facets' +
+        ' &middot; runner up ' + p.runnerUp + ' by ' + (100 * p.margin).toFixed(1) + '</div>' +
+    '</div>' +
+    '<div class="axes" style="--dom:var(--' + dom + ')">' + bars + '</div>' +
+    holdings +
+    '<div class="panel"><h2>WHY THIS READING</h2><div class="kv">' + kv + '</div>' +
+      '<p class="note">Your numbers are compared with <b>5,000 real Ethereum wallets</b>, not with a made up ' +
+      'threshold. That reference is owners of 29 collections, a slice of ordinary wallets taken from recent ' +
+      'blocks, and a handful of well known ones, and it is frozen so the same wallet always reads the same.</p>' +
+      '<p class="note">Balance counts for little here on purpose: the median wallet in that reference holds ' +
+      '<b>0.008 ETH</b>, so a balance measures which wallet you browse with rather than what you own. ' +
+      'Nothing on this page puts a price on your art either, because a collection floor says what the ' +
+      'cheapest one listed costs, not what yours is worth.</p>' +
+      '<p class="note"><b>Contracts created</b> means created from this wallet. Work minted on a shared ' +
+      'platform like SuperRare or KnownOrigin deploys no contract at all, and a collection deployed from ' +
+      'an artist\'s other wallet belongs to that wallet, so neither can appear here. Ethereum only, and ' +
+      'airdropped spam collections are removed.</p>' +
+      spamNote +
+    '</div>' +
+    '<div class="disclaimer"><b>This is not the mint.</b> Nothing here reaches the contract. A facet you ' +
+      'can compute is a facet you can farm, so FACETS assigns faces by VRF instead: the chain hands you a ' +
+      'face you did not choose. What this page shows is which of the seven your history leans toward, and ' +
+      'the answer is never just one.</div>' +
+    '<div class="meta">' + (j.cached ? 'served from cache, read ' + esc(j.at) : 'fresh read') +
+      ' &middot; distance ' + p.distance.toFixed(3) + '</div>';
+
+  requestAnimationFrame(() => document.querySelectorAll('.fill').forEach(el => el.style.width = el.dataset.w + '%'));
+}
+</script>
+</body></html>

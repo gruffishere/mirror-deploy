@@ -1,0 +1,33 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>FACETS: THE MIRROR — card</title>
+<link rel="stylesheet" href="cards.css">
+<style>
+/* One card, at the exact size it will be shared at. The comparison page shows all three small; this
+   one exists so a single layout can be judged, screenshotted and eventually exported at 1080x1350,
+   which is 4:5 and the tallest ratio X will show without cropping. */
+html,body{margin:0;background:#26262b}
+#canvas{width:1080px;height:1350px;margin:0;border-radius:0;box-shadow:none}
+</style></head><body>
+<div class="canvas" id="canvas"></div>
+<script src="cards.js"></script>
+<script src="poster.js"></script>
+<script src="licence.js"></script>
+<script>
+const qs = new URLSearchParams(location.search);
+const which = (qs.get('layout') || 'A').toUpperCase();
+fetch(qs.get('data') || 'data_gruff.json')
+  .then(r => r.json())
+  .then(D => {
+    const L = window.CARD_LAYOUTS(D);
+    L.P = () => window.CARD_POSTER(D);
+    L.L = () => window.CARD_LICENCE(D);
+    document.getElementById('canvas').innerHTML = (L[which] || L.A)();
+    // ⚠️ the screenshot tool waits for this flag rather than for a fixed delay, because a fixed delay
+    // is either too short on a cold start or wasted on a warm one
+    const img = document.querySelector('#canvas img');
+    if (img && !img.complete) img.onload = () => document.body.dataset.ready = '1';
+    else document.body.dataset.ready = '1';
+  })
+  .catch(e => { document.body.innerHTML = '<pre style="color:#fff">' + e.message + '</pre>'; document.body.dataset.ready = '1'; });
+</script>
+</body></html>

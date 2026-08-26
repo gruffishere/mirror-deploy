@@ -1,0 +1,97 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SIGNED — THE MIRROR</title>
+<link rel="stylesheet" href="/cards/faz1.css">
+<style>
+html,body{margin:0;background:var(--ground);color:var(--lit);
+  font:400 16px/1.6 var(--disp);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1720px;margin:0 auto;padding:0 22px 100px}
+
+.top{display:flex;align-items:center;gap:14px;padding:26px 0 4px}
+.wm{background:var(--paper);border-radius:8px;padding:5px 10px 6px;display:inline-block}
+.wm b{display:block;font:800 clamp(18px,1.8vw,24px)/.86 var(--disp);letter-spacing:-.05em;color:#0101ef}
+.top .sub{font:800 11px/1 var(--mono);letter-spacing:.42em;color:var(--dim)}
+.top .back{margin-left:auto;font:800 12px/1 var(--mono);letter-spacing:.16em;color:#9a9aa8;
+  border:1px solid rgba(255,255,255,.22);border-radius:11px;padding:14px 20px}
+.top .back:hover{color:#fff;border-color:rgba(255,255,255,.45)}
+
+h1{font:900 clamp(30px,4.6vw,60px)/1 var(--disp);letter-spacing:-.045em;margin:34px 0 12px;color:#fff}
+.lede{color:#9a9aa8;max-width:60ch;margin:0 0 8px}
+.count{font:800 12px/1 var(--mono);letter-spacing:.2em;color:#6f6f7c;margin:0 0 34px}
+
+/* ⚠️ EACH TILE IS A REAL CARD PNG, rendered once and then served from disk. `loading="lazy"` is not
+   decoration here: without it a board of two hundred signers would ask the server for two hundred
+   browser launches the moment somebody opened this page. */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:26px 22px}
+.tile img{width:100%;aspect-ratio:16/9;display:block;border-radius:10px;background:#0b0b0e;
+  border:1px solid rgba(255,255,255,.10);cursor:zoom-in}
+.tile img:hover{border-color:rgba(255,255,255,.28)}
+
+/* ⚠️ THE CARD ITSELF, AND NOTHING ELSE. No chrome, no caption, no buttons: the point of a wall of
+   cards is the card, so opening one puts it on the screen and gets out of the way. */
+#lb{position:fixed;inset:0;background:rgba(6,6,9,.94);display:none;align-items:center;
+  justify-content:center;padding:4vmin;z-index:50;cursor:zoom-out}
+#lb.on{display:flex}
+#lb img{max-width:100%;max-height:100%;border-radius:12px;display:block;
+  box-shadow:0 30px 90px rgba(0,0,0,.7)}
+.tile .who{margin-top:9px;display:flex;align-items:baseline;gap:8px}
+.tile .nm{font-weight:700;color:#e9e9ef;font-size:15px}
+.tile .hd{font:600 12.5px/1 var(--mono);color:#6f6f7c}
+.tile .fc{margin-left:auto;font:800 10px/1 var(--mono);letter-spacing:.14em}
+.empty{color:#6f6f7c;padding:40px 0}
+</style></head><body>
+
+<div class="wrap">
+  <div class="top">
+    <span class="wm"><b>FACETS</b></span><span class="sub">THE MIRROR</span>
+    <a class="back" href="/">READ A WALLET</a>
+  </div>
+
+  <h1>Signed</h1>
+  <p class="lede">Everyone who proved a wallet is theirs. Each one is on the FCFS list and holds a
+    ticket in the draw for guaranteed spots.</p>
+  <p class="count" id="count">…</p>
+
+  <div class="grid" id="grid"></div>
+</div>
+<div id="lb"><img alt=""></div>
+
+<script>
+const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g,
+  c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const short = a => a.slice(0, 6) + '…' + a.slice(-4);
+
+fetch('/api/signed').then(r => r.json()).then(j => {
+  document.getElementById('count').textContent =
+    j.n === 0 ? 'NOBODY YET' : j.n + (j.n === 1 ? ' WALLET' : ' WALLETS');
+  if (!j.n) {
+    document.getElementById('grid').outerHTML =
+      '<p class="empty">Nobody has signed yet. The first card here will be somebody’s.</p>';
+    return;
+  }
+  document.getElementById('grid').innerHTML = j.rows.map(r =>
+    '<div class="tile">' +
+      '<img loading="lazy" alt="" data-full="1" src="/api/card.png?addr=' + encodeURIComponent(r.addr) + '">' +
+      '<div class="who">' +
+        '<span class="nm">' + esc(r.name || short(r.addr)) + '</span>' +
+        (r.handle ? '<span class="hd">@' + esc(r.handle) + '</span>' : '') +
+        (r.facet ? '<span class="fc" style="color:var(--' + r.facet + '-lit)">' + esc(r.facet) + '</span>' : '') +
+      '</div>' +
+    '</div>').join('');
+}).catch(() => {
+  document.getElementById('count').textContent = 'could not load the list';
+});
+
+// ⚠️ delegated, because the tiles are built after this runs and rebuilt whenever the list changes
+const lb = document.getElementById('lb'), lbimg = lb.querySelector('img');
+document.addEventListener('click', e => {
+  const t = e.target;
+  if (t && t.dataset && t.dataset.full) { lbimg.src = t.src; lb.classList.add('on'); return; }
+  if (lb.classList.contains('on')) { lb.classList.remove('on'); lbimg.src = ''; }
+});
+addEventListener('keydown', e => {
+  if (e.key === 'Escape' && lb.classList.contains('on')) { lb.classList.remove('on'); lbimg.src = ''; }
+});
+</script>
+</body></html>

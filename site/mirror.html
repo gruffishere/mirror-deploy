@@ -1,0 +1,618 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>THE MIRROR — FACETS</title>
+<!-- The card's own stylesheet and layouts, so the thing on this page IS the thing that was designed,
+     not a second copy of it that drifts. -->
+<link rel="stylesheet" href="/cards/faz1.css">
+<style>
+/* ⚠️ THE PAGE HAS ALMOST NO STYLE OF ITS OWN ON PURPOSE. gruff, 2026-08-26: "çok ekstra yazı olmasın
+   sitede, net, temiz ve basit." One input, one answer, and the card carries the design. */
+html,body{margin:0;background:var(--ground);color:var(--lit);
+  font:400 16px/1.6 var(--disp);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding:0 22px}
+
+/* ── the one screen you land on ─────────────────────────────────────────────────────────────────── */
+.hero{min-height:78vh;display:flex;flex-direction:column;justify-content:center;padding:60px 0 40px}
+/* ── THE SQUARE WATCHES YOU ──────────────────────────────────────────────────────────────────────
+   Token #1066, the same real whale that watches you on the FACETS site: a Bullion gild, a four ring
+   halo, wide eyes and a gm mouth, rendered at 45 head angles and packed into one 31 kb sprite.
+   ⚠️ EVERY FRAME IS A REAL RENDER OF A REAL TOKEN. yaw and pitch are parameters the art already has.
+   ⚠️ ONE SPRITE, MOVED BY background-position. No image swap per frame, so crossing a cell boundary
+   costs nothing and cannot flicker.
+   ⚠️ With no pointer it simply looks straight ahead, which is a real frame and not a fallback. */
+.heroin{display:flex;align-items:center;gap:clamp(24px,4vw,64px)}
+.heroin > .col{flex:1 1 auto;min-width:0}
+.mascot{flex:0 0 auto;width:clamp(180px,26vw,320px);aspect-ratio:1;background:#000;border-radius:14px;
+  overflow:hidden;box-shadow:0 18px 60px rgba(0,0,0,.55)}
+.mascot i{width:100%;height:100%;display:block;background-repeat:no-repeat;image-rendering:pixelated;
+  background-image:url(/img/mascot.png);
+  /* 9 columns x 5 rows, so one cell fills the element exactly, before any script runs */
+  background-size:900% 500%;background-position:50% 50%}
+.answered .mascot{display:none}
+@media(max-width:820px){.mascot{display:none}}
+/* ⚠️ THE TRAILER'S BLUE IS #0101ef AND IT MEASURES 2.11:1 ON THIS GROUND, which fails even as large
+   text. The FACETS site never puts it on the dark either: its wordmark sits inside a coloured block.
+   So the real colour is kept and the ground under it changes, exactly as the site does it. */
+.mark{display:flex;align-items:center;gap:14px;margin-bottom:26px}
+.wm{background:var(--paper);border-radius:8px;padding:7px 14px 9px;display:inline-block}
+.wm b{display:block;font:800 clamp(26px,3.2vw,44px)/.86 var(--disp);letter-spacing:-.05em;
+  color:#0101ef}
+.mark .sub{font:800 11px/1 var(--mono);letter-spacing:.42em;color:var(--dim)}
+/* ⚠️ the border carries the rainbow through a mask; the text carries it through background-clip.
+   A rainbow FILL behind rainbow text would leave nothing readable. */
+.signedlink{position:relative;margin-left:auto;font:800 11px/1 var(--mono);letter-spacing:.16em;
+  text-decoration:none;border-radius:10px;padding:13px 19px;background:#0d0d12;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  background-image:var(--rainbow)}
+.signedlink::before{content:'';position:absolute;inset:0;border-radius:10px;padding:1.5px;
+  background-image:var(--rainbow);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
+.signedlink:hover::before{padding:2px}
+.answered .wm{padding:5px 10px 6px}
+.answered .wm b{font-size:clamp(18px,1.8vw,24px)}
+h1{font:900 clamp(38px,6.4vw,84px)/.98 var(--disp);letter-spacing:-.045em;margin:0 0 18px;color:#fff}
+.lede{font-size:clamp(15px,1.8vw,19px);color:#a9a9b6;max-width:44ch;margin:0 0 38px}
+.lede b{color:#e9e9ef;font-weight:600}
+
+form{display:flex;gap:10px;max-width:620px}
+input[type=text]{flex:1;min-width:0;background:#141419;border:1px solid rgba(255,255,255,.16);
+  border-radius:11px;color:#fff;font:500 17px/1 var(--mono);padding:17px 18px;outline:none}
+input[type=text]:focus{border-color:rgba(255,255,255,.42)}
+input[type=text]::placeholder{color:#5f5f6c}
+button{appearance:none;border:0;border-radius:11px;background:#fff;color:#0b0b0e;cursor:pointer;
+  font:800 13px/1 var(--mono);letter-spacing:.16em;padding:0 26px}
+button:disabled{opacity:.45;cursor:default}
+button.ghost{background:transparent;color:#e9e9ef;border:1px solid rgba(255,255,255,.22)}
+.tries{margin:16px 0 0;font-size:13.5px;color:#6f6f7c}
+.tries a{color:#9a9aa8;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.16);cursor:pointer}
+.tries a:hover{color:#fff}
+
+/* ⚠️ WHEN THE ANSWER ARRIVES IT TAKES THE SCREEN. Leaving the hero at full height pushed the card
+   most of a screen below the fold, so the thing a person came for was the thing they had to go
+   looking for. The hero collapses to a bar and the card is the page. */
+.answered .hero{min-height:0;padding:26px 0 4px}
+.answered h1,.answered .lede,.answered .tries{display:none}
+.answered form{max-width:none}
+.answered .mark{margin-bottom:16px}
+
+/* ── states ─────────────────────────────────────────────────────────────────────────────────────── */
+.state{margin:26px 0 0;font:600 14px/1.6 var(--mono);color:#9a9aa8;min-height:22px}
+.state .bar{display:inline-block;width:9px;height:9px;border-radius:2px;background:#fff;
+  margin-right:9px;animation:blink 1s steps(2,end) infinite}
+@keyframes blink{50%{opacity:.15}}
+.err{color:var(--DEGEN)}
+
+/* ── the answer ─────────────────────────────────────────────────────────────────────────────────── */
+#out{display:none;padding:0 0 90px}
+#out.on{display:block}
+.cardwrap{max-width:1000px;margin:0 auto}
+.acts{display:flex;gap:10px;flex-wrap:wrap;margin:20px auto 0;max-width:1000px}
+.acts button{height:58px;font-size:14px;letter-spacing:.18em;padding:0 30px}
+.asof{max-width:1000px;margin:14px auto 0;font:600 12.5px/1.5 var(--mono);color:#5f5f6c}
+
+/* the claim block. Locked until a signature, because a typed name on an unsigned card would let
+   anyone read anyone's wallet and put their own handle on it. */
+.claim{max-width:1000px;margin:26px auto 0;border:1px solid rgba(255,255,255,.16);border-radius:16px;
+  padding:30px 32px;background:#101015}
+.claim h3{font:800 13px/1 var(--mono);letter-spacing:.24em;color:#fff;margin:0 0 12px}
+.claim p{margin:0;font-size:15.5px;color:#9a9aa8;max-width:68ch}
+.claim .deal{margin-top:14px;color:#c9c9d4;line-height:1.7;font-size:16px}
+.claim .deal b{color:#fff;font-weight:700}
+/* the same wordmark as the top of the page, at caption size, so FACETS reads as the brand inside a
+   sentence rather than as a shouted word */
+/* ⚠️ SAME CHIP, ONE SIZE DOWN. gruff: every FACETS on the page should be the one in the header. It
+   cannot be the same PIXEL size inside a sentence, so it is the same weight, the same tracking and
+   the same blue, scaled to sit on a text baseline. */
+.wm.sm{padding:3px 9px 4px;border-radius:6px;vertical-align:baseline}
+.wm.sm b{display:inline;font:800 18px/1 var(--disp);letter-spacing:-.05em}
+.claim .deal .wm b{color:#0101ef}   /* beats .claim .deal b, which is white and would blank the chip */
+.fields{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.fields{margin-top:20px}
+.fields input{flex:1 1 200px;background:#171720;border:1px solid rgba(255,255,255,.16);border-radius:11px;
+  color:#fff;font:500 16px/1 var(--disp);padding:17px 17px;outline:none}
+/* ⚠️ THE ONE BUTTON THAT CHANGES ANYTHING gets the rainbow, so it is not another grey rectangle in a
+   row of grey rectangles. The border carries it; a rainbow fill would make the label unreadable. */
+#sign,#resign{position:relative;background:#0d0d12;color:#fff;padding:0 26px;height:56px;
+  border-radius:11px;font:800 13px/1 var(--mono);letter-spacing:.16em}
+#sign::before,#resign::before{content:'';position:absolute;inset:0;border-radius:11px;padding:2px;
+  background-image:var(--rainbow);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
+.fields input:disabled{opacity:.42}
+.done{color:var(--NEWBIE);font:700 13px/1.6 var(--mono);letter-spacing:.1em}
+.ok{position:relative;margin-top:18px;border-radius:12px;padding:16px 18px;background:#0e1a13;
+  display:flex;align-items:center;gap:13px;animation:okin .45s cubic-bezier(.2,.8,.2,1) both}
+.ok::before{content:'';position:absolute;inset:0;border-radius:12px;padding:1.5px;
+  background-image:var(--rainbow);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
+.ok .tick{flex:0 0 auto;width:26px;height:26px;border-radius:50%;background:var(--NEWBIE);
+  color:#06170e;font:900 15px/26px var(--disp);text-align:center}
+.ok .txt{font-size:14.5px;color:#d6e8dd;line-height:1.5}
+.ok .txt b{color:#fff;font-weight:700}
+.ok a{color:var(--NEWBIE);border-bottom:1px solid rgba(55,200,120,.5);text-decoration:none}
+@keyframes okin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ── THE REPORT, THE BACK OF THE CARD ───────────────────────────────────────────────────────────
+   Everything the chain remembers, in the warm second person the story layer was written in, plus how
+   close this wallet sits to the OTHER six facets. It is NOT folded away: the top of the page is one
+   clean answer, and anyone who wants the long version scrolls, which is what a fold only pretended
+   to solve. */
+#report{max-width:1000px;margin:0 auto;display:none}
+#report.on{display:block}
+.sec{border-top:1px solid rgba(255,255,255,.12);margin-top:46px;padding-top:20px}
+.sec > h2{font:800 10.5px/1 var(--mono);letter-spacing:.24em;color:#9a9aa8;margin:0 0 22px}
+
+.closing{margin:46px 0 0;padding-top:34px;border-top:1px solid rgba(255,255,255,.12)}
+.closing .big{font:900 clamp(28px,4.4vw,52px)/1.06 var(--disp);letter-spacing:-.035em;color:#fff;max-width:20ch}
+.closing .sub{font-size:16px;color:#9a9aa8;margin-top:14px;max-width:60ch}
+
+/* ⚠️ THE BACK OF THE CARD, gruff 2026-08-26. Same surface, same facet frame, so the long version
+   reads as the other side of the object rather than as a separate page under it. It is for reading
+   and for the look, so it stays simple: a coloured block, a fact, a reaction. */
+.back{position:relative;background:#0b0b0e;border-radius:16px;padding:30px 32px 12px;
+  box-shadow:0 16px 46px rgba(0,0,0,.5);overflow:hidden}
+.back::after{content:'';position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;opacity:.22;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='90' height='90'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .42 0'/></filter><rect width='90' height='90' filter='url(%23g)'/></svg>")}
+.back .frame{position:absolute;inset:0;border-radius:16px;pointer-events:none;padding:2px;
+  background-image:var(--rainbow);opacity:.55;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
+.back h2{font:800 10.5px/1 var(--mono);letter-spacing:.24em;color:#9a9aa8;margin:0 0 22px}
+.beat{padding:15px 0;border-bottom:1px solid rgba(255,255,255,.07);display:flex;gap:18px;
+  align-items:flex-start}
+/* the coloured block: the seven, cycling, so the column reads as the collection's own palette */
+.beat .blk{flex:0 0 auto;width:26px;height:26px;border-radius:6px;margin-top:2px}
+.beat .l{font-size:clamp(15px,1.7vw,18.5px);line-height:1.45;color:#e9e9ef}
+.beat .q{font-size:14px;color:#7a7a88;margin-top:4px}
+.beat:last-child{border-bottom:0}
+
+/* the seven, and how near you are to each. The card leads with one word; this is where the thesis
+   that nobody is one thing actually gets shown. */
+.ax{display:grid;grid-template-columns:104px 1fr 44px;gap:0 14px;align-items:center;padding:9px 0}
+.ax .nm{font:800 11px/1 var(--mono);letter-spacing:.12em;color:#7a7a88}
+.ax.dom .nm{color:#fff}
+.ax .track{height:9px;background:#1c1c24;border-radius:99px;overflow:hidden}
+.ax.dom .track{height:15px}
+.ax .track i{display:block;height:100%;border-radius:99px;width:0;transition:width .9s cubic-bezier(.2,.7,.2,1)}
+.ax .pc{font:700 12px/1 var(--mono);color:#9a9aa8;text-align:right}
+.ax.dom .pc{color:#fff}
+.ax .fx{grid-column:2 / span 2;font-size:13px;color:#6f6f7c;margin-top:5px}
+
+.holds{display:flex;flex-wrap:wrap;gap:8px}
+.holds span{border:1px solid rgba(255,255,255,.14);border-radius:99px;padding:8px 13px;font-size:13.5px;color:#c4c4d0}
+.holds b{color:#6f6f7c;font-weight:600}
+
+.kv{display:grid;grid-template-columns:auto 1fr;gap:9px 22px;font-size:14px}
+.kv .k{color:#6f6f7c;white-space:nowrap}
+.kv .v{color:#e9e9ef}
+.note{font-size:13.5px;color:#6f6f7c;margin:18px 0 0;max-width:82ch}
+.note b{color:#9a9aa8;font-weight:600}
+.gap{border:1px solid var(--DEGEN);border-radius:12px;padding:16px 18px;color:#e9a8ba;font-size:14px;
+  max-width:1000px;margin:22px auto 0}
+
+footer{border-top:1px solid rgba(255,255,255,.1);padding:26px 0 60px;font-size:13px;color:#6f6f7c}
+footer b{color:#9a9aa8;font-weight:600}
+footer p{margin:0 0 9px;max-width:80ch}
+</style></head><body>
+
+<div class="wrap">
+  <section class="hero">
+    <div class="mark"><span class="wm"><b>FACETS</b></span><span class="sub">THE MIRROR</span><a class="signedlink" href="/signed">SIGNED WALLETS</a></div>
+    <div class="heroin"><div class="col">
+    <h1>Who are you<br>on chain?</h1>
+    <p class="lede">Paste a wallet. It gets read against <b>5,000 real Ethereum wallets</b> and comes
+      back as one of seven facets, with a piece of FACETS art drawn from the address itself.</p>
+
+    <form id="f" autocomplete="off">
+      <input type="text" id="a" placeholder="0x… or a name.eth" spellcheck="false">
+      <button id="go">READ</button>
+    </form>
+    <p class="tries">try <a data-a="vitalik.eth">vitalik.eth</a> &middot;
+      <a data-a="dingaling.eth">dingaling.eth</a> &middot; <a data-a="tfw.eth">tfw.eth</a></p>
+    <div class="state" id="state"></div>
+    </div>
+    <div class="mascot" aria-hidden="true"><i id="mascot"></i></div>
+    </div>
+  </section>
+
+  <section id="out">
+    <div class="cardwrap" id="card"></div>
+    <div class="acts">
+      <button class="ghost" id="png">DOWNLOAD THE CARD</button>
+      <button class="ghost" id="tweet">SHARE ON X</button>
+    </div>
+    <p class="asof" id="asof"></p>
+    <div class="claim" id="claim"></div>
+    <section id="report"></section>
+  </section>
+
+  <footer>
+    <p><b>This is not the mint.</b> Nothing here touches the contract, and the facet the chain gives you
+      later is its own decision.</p>
+    <p>Rank and rarity are measured against a fixed reference of 5,000 real Ethereum wallets, not
+      against all of Ethereum. Holdings are read on Ethereum only and spam is removed, so the piece
+      count is lower than a marketplace will show, by design.</p>
+    <p>The artwork is a real FACETS render seeded by the address. Its token id sits far outside the
+      collection's range, so a Mirror piece can never be a token.</p>
+  </footer>
+</div>
+
+<script>
+// the live page draws every address from the API; the lab keeps its five local PNGs
+window.FAZ1_ART = (a, f) => "/api/art.svg?addr=" + a + "&facet=" + f;
+</script>
+<script src="/cards/facetword.js"></script>
+<script src="/cards/faz1_layouts.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const API = '';                     // same origin as this page
+let DATA = null, ADDR = null, SIGNED = false, TYPED = { name: null, handle: null };
+
+// ── the card ──────────────────────────────────────────────────────────────────────────────────────
+// ⚠️ built from the API response and nothing else. The layout module is the one the card was designed
+// in, so this page cannot drift away from what was approved.
+function view() {
+  const m = DATA.mirror || {};
+  return FAZ1_VIEW(DATA, SIGNED, TYPED, m.twin || null, m.near == null ? 0 : m.near, m.rank || null);
+}
+function draw() {
+  $('#card').innerHTML = FAZ1_CARDS.L2b(view());
+}
+
+// ── reading ───────────────────────────────────────────────────────────────────────────────────────
+let poll = null;
+function say(html, bad) { $('#state').innerHTML = html; $('#state').className = 'state' + (bad ? ' err' : ''); }
+
+async function read(addr) {
+  clearInterval(poll);
+  $('#go').disabled = true;
+  $('#out').classList.remove('on');
+  say('<span class="bar"></span>reading the chain');
+
+  // ⚠️ THE QUEUE HAS TO BE VISIBLE. The server takes one uncached address at a time and a read can
+  // run to twenty seconds, so without this a real answer on its way is indistinguishable from a dead
+  // site. /api/status is free and never queues.
+  let ticks = 0;
+  poll = setInterval(async () => {
+    ticks++;
+    try {
+      const s = await (await fetch(API + '/api/status')).json();
+      say('<span class="bar"></span>' + (s.queue > 1
+        ? 'reading the chain &middot; ' + s.queue + ' wallets in the queue'
+        : 'reading the chain &middot; ' + ticks + 's') +
+        (ticks > 8 ? ' &middot; a long history takes longer' : ''));
+    } catch {}
+  }, 1000);
+
+  try {
+    const r = await fetch(API + '/api/read?addr=' + encodeURIComponent(addr));
+    const j = await r.json();
+    clearInterval(poll);
+    $('#go').disabled = false;
+    if (!r.ok || j.error) return say(j.error || ('something went wrong (' + r.status + ')'), true);
+    DATA = j; ADDR = j.signals.addr;
+    SIGNED = !!j.claimed;
+    TYPED = j.claimed ? { name: j.claimed.name, handle: j.claimed.handle } : { name: null, handle: null };
+    say(j.cached ? '' : '');
+    show();
+  } catch (e) {
+    clearInterval(poll);
+    $('#go').disabled = false;
+    say('could not reach the reader', true);
+  }
+}
+
+// ⚠️ SAY WHEN. A reading that is not from today has to admit it, or the page quietly presents an old
+// picture of a wallet that has moved since. Anything read in the last day says nothing, because
+// "read today" is noise.
+function drawAsOf() {
+  const el = $('#asof'); if (!el) return;
+  const at = DATA.at ? new Date(DATA.at) : null;
+  if (!at || isNaN(at)) { el.textContent = ''; return; }
+  const days = Math.floor((Date.now() - at.getTime()) / 86400000);
+  el.textContent = days < 1 ? '' :
+    'READ ' + at.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' }) +
+    ' · ' + days + (days === 1 ? ' DAY' : ' DAYS') + ' AGO. THIS WALLET MAY HAVE MOVED SINCE.';
+}
+
+function show() {
+  draw();
+  drawAsOf();
+  drawClaim();
+  drawReport();
+  $('#out').classList.add('on');
+  document.body.classList.add('answered');
+  window.scrollTo({ top: 0 });
+}
+
+// ── the claim ─────────────────────────────────────────────────────────────────────────────────────
+function drawClaim() {
+  const c = $('#claim');
+  if (SIGNED) {
+    c.innerHTML = '<h3>SIGNED</h3>' +
+      '<p>This wallet is on the FCFS list and in the draw for guaranteed spots. Your name is on the card.</p>' +
+      '<div class="fields">' +
+        '<input id="nm" maxlength="24" placeholder="name" value="' + esc(TYPED.name || '') + '">' +
+        '<input id="hd" maxlength="16" placeholder="@handle" value="' + esc(TYPED.handle ? '@' + TYPED.handle : '') + '">' +
+        '<button class="ghost" id="resign">UPDATE</button>' +
+      '</div>';
+    $('#resign').onclick = sign;
+  } else {
+    c.innerHTML = '<h3>PUT YOUR NAME ON IT</h3>' +
+      "<p>Anyone can read anyone’s wallet, so a name only goes on a card the owner signed for. " +
+      'Signing costs no gas and moves nothing.</p>' +
+      // ⚠️ SPELLED OUT, because "it puts this wallet on the FCFS list and in the draw" was two
+      // different promises inside one clause and read as one. They are separate: signing IS the FCFS
+      // entry, and the raffle among tickets is the CHANCE at a GTD spot. One is certain, one is not.
+      '<p class="deal">Enter your name and X handle and sign with your wallet, and your card gets a ' +
+      '<b>ticket</b>. Signing puts you straight into the <b>FCFS phase</b> of the ' +
+      '<span class="wm sm"><b>FACETS</b></span> mint, and the raffle drawn among the tickets is your ' +
+      'shot at a <b>GTD spot</b>.</p>' +
+      '<div class="fields">' +
+        '<input id="nm" maxlength="24" placeholder="name">' +
+        '<input id="hd" maxlength="16" placeholder="@handle">' +
+        '<button id="sign">SIGN WITH THIS WALLET</button>' +
+      '</div><div class="state" id="cs"></div>';
+    $('#sign').onclick = sign;
+  }
+}
+
+async function sign() {
+  const st = $('#cs') || $('#state');
+  const set = (t, bad) => { st.innerHTML = t; st.className = 'state' + (bad ? ' err' : ''); };
+  if (!window.ethereum) return set('no wallet found in this browser', true);
+  try {
+    const accts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const me = (accts[0] || '').toLowerCase();
+    // ⚠️ the wallet that signs must be the wallet on screen, or the card would carry one person's
+    // reading under another person's name.
+    if (me !== ADDR.toLowerCase())
+      return set('that wallet is ' + me.slice(0, 8) + '…, and this reading is ' + ADDR.slice(0, 8) + '…', true);
+
+    set('<span class="bar"></span>asking for a nonce');
+    const n = await (await fetch(API + '/api/nonce', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address: accts[0] }) })).json();
+    if (n.error) return set(n.error, true);
+
+    set('<span class="bar"></span>waiting for your signature');
+    const signature = await window.ethereum.request({
+      method: 'personal_sign', params: [n.message, accts[0]] });
+
+    const r = await (await fetch(API + '/api/claim', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nonce: n.nonce, signature,
+        name: ($('#nm') || {}).value, handle: ($('#hd') || {}).value,
+        facet: DATA.profile.dominant, rank: DATA.mirror && DATA.mirror.rank && DATA.mirror.rank.n })
+    })).json();
+    if (r.error) return set(r.error, true);
+
+    SIGNED = true;
+    TYPED = { name: r.name, handle: r.handle };
+    draw(); drawClaim();
+    // ⚠️ the confirmation names what actually happened, both halves: the FCFS entry is CERTAIN and the
+    // GTD spot is a CHANCE. A cheerful "you're in!" would blur the two, which is the exact thing the
+    // copy above was rewritten to stop doing.
+    const c = $('#claim');
+    const el = document.createElement('div');
+    el.className = 'ok';
+    el.innerHTML = '<div class="tick">&#10003;</div><div class="txt">' +
+      '<b>Signed.</b> This wallet is on the <b>FCFS list</b> and your card holds a <b>ticket</b> in the ' +
+      'draw for a GTD spot. Your name is on the card now. ' +
+      '<a href="/signed">See it on the board</a>.</div>';
+    c.appendChild(el);
+  } catch (e) {
+    // a person closing the wallet popup is not an error worth shouting about
+    set(e && e.code === 4001 ? 'signature cancelled' : (e && e.message || 'could not sign'), true);
+  }
+}
+
+// ── THE REPORT ────────────────────────────────────────────────────────────────────────────────────
+// ⚠️ EVERY CAVEAT BELOW IS CARRIED OVER WORD FOR WORD FROM THE BENCH. Each one was written because a
+// number on this page was once read as something it is not, and shortening them would put the same
+// misreading back. In particular: no page here puts a price on anyone's wallet.
+const TAGLINE = {
+  NEWBIE: 'the story just began', COLLECTOR: 'taste is a signal', DEGEN: 'all in, always',
+  BUILDER: 'you ship', OG: 'you were here first', WHALE: 'the tide moves with you',
+  GHOST: 'seen everything, said nothing'
+};
+const num = v => v == null ? 'unknown' : Number(v).toLocaleString('en-US');
+
+function drawReport() {
+  const p = DATA.profile, s = DATA.signals, st = DATA.story || {}, dom = p.dominant;
+
+  // ⚠️ A WALLET WE COULD NOT FULLY READ MUST SAY SO. Every missing signal quietly defaults to the
+  // population midpoint, which turns a failed request into a confident looking profile.
+  const gap = (p.gaps && p.gaps.length)
+    ? '<div class="gap">Read with gaps: ' + esc(p.gaps.join(', ')) + '. The missing parts are scored ' +
+      'at the population average, so treat this reading as partial.</div>' : '';
+
+  // ⚠️ the sentence ends on WHO it is about. Without a name it is a horoscope; with one it is a
+  // statement about a person. The .eth is dropped because the name is the part that carries.
+  const who = (TYPED.handle ? '@' + TYPED.handle : null) ||
+    (s.ens ? s.ens.replace(/.eth$/i, '') : null) ||
+    (s.addr.slice(0, 6) + '…' + s.addr.slice(-4));
+  const closing = st.closing ? '<div class="closing">' +
+    '<div class="big">' + esc(st.closing.line) +
+      ' <span class="rbtext">' + esc(who) + '</span></div></div>' : '';
+
+  // every beat, most striking first. `score` is how far this number sits from the population median,
+  // which is the engine's own answer to "how striking is this".
+  const beats = (st.report || []).slice().sort((a, b) => b.score - a.score);
+  // ⚠️ the blocks cycle the seven in the collection's own order, which is decoration and says so.
+  // They are NOT each beat's facet: no beat belongs to a facet, and colouring them as if it did would
+  // invent a mapping the engine does not have.
+  const F7 = ['NEWBIE', 'COLLECTOR', 'DEGEN', 'BUILDER', 'OG', 'WHALE', 'GHOST'];
+  const story = '<div class="sec"><div class="back"><span class="frame"></span>' +
+    '<h2>' + beats.length + ' THINGS THE CHAIN REMEMBERS</h2>' +
+    beats.map((b, i) => '<div class="beat">' +
+      '<div class="blk" style="background:var(--' + F7[i % 7] + ')"></div>' +
+      '<div><div class="l">' + esc(b.line) + '</div>' +
+      (b.quip ? '<div class="q">' + esc(b.quip) + '</div>' : '') + '</div></div>').join('') +
+    '</div></div>';
+
+  // ── how close you are to the other six ──────────────────────────────────────────────────────────
+  const axes = p.ordered.map(f => {
+    const zero = p.bars[f] <= 0.005;
+    // ⚠️ BUILDER is zero for 96.1% of wallets (measured). An empty bar with no explanation reads as a
+    // broken page, so the rarity is stated rather than left silent.
+    const fx = f === 'BUILDER' && zero
+      ? 'almost nobody deploys. that is what makes it rare.' : (p.facts[f] || '');
+    return '<div class="ax' + (f === dom ? ' dom' : '') + '">' +
+      '<div class="nm">' + f + '</div>' +
+      '<div class="track"><i data-w="' + Math.min(100, 100 * p.bars[f]).toFixed(1) +
+        '" style="background:var(--' + f + ')"></i></div>' +
+      '<div class="pc">' + Math.round(100 * p.axes[f]) + '</div>' +
+      (fx ? '<div class="fx">' + esc(fx) + '</div>' : '') + '</div>';
+  }).join('');
+  const seven = '<div class="sec"><h2>ALL SEVEN, BECAUSE NO ONE IS ONE THING</h2>' + axes +
+    '<p class="note">You lean <b>' + dom + '</b>, ' + esc(TAGLINE[dom]) + ', and you are <b>' +
+    p.spread.toFixed(1) + ' of 7</b> facets at once. The runner up is <b>' + p.runnerUp +
+    // ⚠️ the same units as the numbers beside the bars. 100 * (calibrated difference) printed
+    // "behind by 126.1", which is not a percentage of anything and matched nothing else on screen.
+    '</b>, ' + (Math.round(100 * p.axes[dom]) - Math.round(100 * p.axes[p.runnerUp])) + ' behind.' +
+    (p.margin < 0.03 ? ' That is close enough that the order between those two is nearly a coin flip.' : '') +
+    '</p></div>';
+
+  // ⚠️ ordered by the COLLECTION's floor, and it is labelled as the collection's. Ranking by how many
+  // copies you hold put a 0.0009 ETH floor collection above a 1.7 ETH one, which is backwards for
+  // exactly the wallets people want to show off.
+  const holds = (s.names && s.names.length)
+    ? '<div class="sec"><h2>WHAT YOU ACTUALLY HOLD</h2><div class="holds">' +
+      s.names.slice(0, 12).map(n => '<span>' + esc(n.name) + (n.held > 1 ? ' &times;' + n.held : '') +
+        (n.floor >= 0.01 ? ' <b>floor ' + n.floor.toFixed(2) + ' &#x39E;</b>' : '') + '</span>').join('') +
+      '</div><p class="note">Safelisted collections only, ordered by the collection floor. That floor is ' +
+      'the collection\'s, not your piece\'s, and <b>this page does not put a value on your wallet</b>.</p></div>'
+    : '';
+
+  const kv = [
+    ['history read', s.rowCount == null ? 'failed' : num(s.rowCount) + ' transactions' +
+      (s.historyComplete === false ? '  (truncated at the cap)' : '  (complete)')],
+    ['wallet age', s.ageDays == null ? 'unknown' : num(s.ageDays) + ' days'],
+    ['sent / received', num(s.sent) + ' / ' + num(s.received)],
+    ['reverted, all time', num(s.failCount)],
+    ['gas burned, all time', s.gasEth == null ? 'unknown' : s.gasEth.toFixed(4) + ' Ξ'],
+    ['total volume, both ways', s.volumeEth == null ? 'unknown' : num(Math.round(s.volumeEth)) + ' Ξ'],
+    ['largest move ever', s.maxValueEth == null ? 'unknown' : s.maxValueEth.toFixed(2) + ' Ξ'],
+    ['idle since last send', s.idleDays == null ? 'never sent' : num(s.idleDays) + ' days'],
+    ['contracts created', num(s.deploys) + '  (' + num(s.directDeploys) + ' direct, ' +
+      num(s.factoryDeploys) + ' via a factory)'],
+    ['collections, spam removed', (s.collsExact === false ? 'at least ' : '') + num(s.colls) +
+      (s.collsRaw ? '  of ' + num(s.collsRaw) + ' before spam' : '')],
+    ['pieces, spam removed', (s.collsExact === false ? 'at least ' : '') + num(s.nfts)],
+    ['pieces in verified collections', num(s.bluePieces) + ' across ' + num(s.blueColls)],
+    ['smart account', s.smart ? 'yes' : 'no']
+  ].map(r => '<div class="k">' + esc(r[0]) + '</div><div class="v">' + esc(r[1]) + '</div>').join('');
+
+  const why = '<div class="sec"><h2>WHY THIS READING</h2><div class="kv">' + kv + '</div>' +
+    '<p class="note">Your numbers are compared with <b>5,000 real Ethereum wallets</b>, not with a made ' +
+    'up threshold. That reference is the owners of 29 collections, a slice of ordinary wallets taken ' +
+    'from recent blocks, and a handful of well known ones, and it is <b>frozen</b>, so the same wallet ' +
+    'always reads the same and a card stays true after it is posted.</p>' +
+    '<p class="note">Balance counts for little here on purpose: the median wallet in that reference holds ' +
+    '<b>0.008 ETH</b>, so a balance measures which wallet you browse with rather than what you own. ' +
+    'Nothing here puts a price on your art either, because a collection floor says what the cheapest one ' +
+    'listed costs, not what yours is worth.</p>' +
+    '<p class="note"><b>Contracts created</b> means created from this wallet. Work minted on a shared ' +
+    'platform like SuperRare or KnownOrigin deploys no contract at all, and a collection deployed from ' +
+    'an artist\'s other wallet belongs to that wallet, so neither can appear here. Ethereum only, and ' +
+    'airdropped spam collections are removed.</p>' +
+    (s.collsExact === false
+      ? '<p class="note">This wallet holds ' + num(s.collsRaw) + ' collections and the first ' +
+        num(s.pagesRead * 100) + ' were counted, so those counts are floors rather than totals. Nothing ' +
+        'is projected from the sample: page order is not random and the deepest holdings come first, so ' +
+        'scaling a partial count up once produced 153,080 pieces for a wallet holding a tenth of that.</p>'
+      : '') +
+    '<p class="note"><b>This is not the mint.</b> A facet you can compute is a facet you can farm, so ' +
+    'FACETS assigns faces by VRF instead: the chain hands you a face you did not choose. What this page ' +
+    'shows is which of the seven your history leans toward, and the answer is never just one.</p>' +
+    '<p class="note">' + (DATA.cached ? 'Served from cache, read ' + esc(DATA.at) : 'Fresh read') +
+    ' &middot; distance ' + p.distance.toFixed(3) + ' &middot; rarer than ' +
+    (100 * p.rarity).toFixed(2) + '% of the wallets read.</p></div>';
+
+  $('#report').innerHTML = gap + closing + story;
+  $('#report').classList.add('on');
+  // the bars grow once, after layout, so the number arriving is something you watch rather than read
+  requestAnimationFrame(() => document.querySelectorAll('.ax .track i')
+    .forEach(el => el.style.width = el.dataset.w + '%'));
+}
+
+const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g,
+  c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// ── wiring ────────────────────────────────────────────────────────────────────────────────────────
+$('#f').addEventListener('submit', e => { e.preventDefault(); const v = $('#a').value.trim(); if (v) read(v); });
+document.querySelectorAll('.tries a').forEach(a => a.onclick = () => { $('#a').value = a.dataset.a; read(a.dataset.a); });
+// ⚠️ the PNG is rendered on the server from this exact card, so what gets shared is a picture of
+// what was on screen rather than a second drawing of it. It takes a couple of seconds the first time.
+$('#png').onclick = async () => {
+  const btn = $('#png'), was = btn.textContent;
+  btn.disabled = true; btn.textContent = 'DRAWING…';
+  try {
+    const r = await fetch('/api/card.png?addr=' + encodeURIComponent(ADDR));
+    if (!r.ok) throw new Error((await r.json()).error || 'could not draw it');
+    const url = URL.createObjectURL(await r.blob());
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'facets-mirror-' + (TYPED.handle || (DATA.signals.ens || ADDR.slice(0, 10))) + '.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  } catch (e) { say(e.message, true); }
+  btn.disabled = false; btn.textContent = was;
+};
+$('#tweet').onclick = () => {
+  const p = DATA.profile, m = DATA.mirror || {};
+  const line = 'I am ' + p.dominant + ' on THE MIRROR' +
+    (m.rank ? ', #' + m.rank.n + ' of ' + m.n : '') + '.\n\nwho are you on chain?';
+  window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(line), '_blank', 'noopener');
+};
+
+// ── the square that watches you ───────────────────────────────────────────────────────────────────
+// The sprite is a grid of head angles. The pointer's offset from the square's own centre picks a
+// cell, and the pick is EASED rather than snapped, so the head turns instead of teleporting.
+// ⚠️ reduce SLOWS the easing, it does not switch it off: this answers the visitor's own hand rather
+// than being ambient decoration, and freezing it would just look broken.
+(function () {
+  const el = document.getElementById('mascot'); if (!el) return;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  fetch('/img/mascot.json').then(r => r.json()).then(m => {
+    const cols = m.cols, rows = m.rows;
+    const cur = { x: (cols - 1) / 2, y: (rows - 1) / 2 };
+    const want = { x: cur.x, y: cur.y };
+    // ⚠️ PERCENTAGES, NOT PIXELS. A percentage background-position is relative to the element, so it
+    // survives any resize with no handler and cannot be wrong before layout has happened.
+    el.style.backgroundSize = (cols * 100) + '% ' + (rows * 100) + '%';
+    function paint() {
+      el.style.backgroundPosition =
+        (Math.round(cur.x) / (cols - 1) * 100) + '% ' + (Math.round(cur.y) / (rows - 1) * 100) + '%';
+    }
+    paint();
+    addEventListener('pointermove', ev => {
+      const r = el.getBoundingClientRect(); if (!r.width) return;
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      // the reach is the viewport, so the head is already turning long before the pointer arrives
+      const dx = Math.max(-1, Math.min(1, (ev.clientX - cx) / (innerWidth * 0.42)));
+      const dy = Math.max(-1, Math.min(1, (ev.clientY - cy) / (innerHeight * 0.42)));
+      want.x = (dx + 1) / 2 * (cols - 1);
+      want.y = (dy + 1) / 2 * (rows - 1);
+    }, { passive: true });
+    const ease = reduce ? 0.06 : 0.16;
+    (function loop() {
+      const dx = want.x - cur.x, dy = want.y - cur.y;
+      if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) { cur.x += dx * ease; cur.y += dy * ease; paint(); }
+      requestAnimationFrame(loop);
+    })();
+  }).catch(() => {});
+})();
+
+// ?addr= makes a reading a link somebody can send
+const q = new URLSearchParams(location.search).get('addr');
+if (q) { $('#a').value = q; read(q); }
+</script>
+</body></html>

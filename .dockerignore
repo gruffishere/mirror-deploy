@@ -1,0 +1,20 @@
+# ⛔ THE KEYS NEVER GO IN THE IMAGE. They arrive as environment variables the host holds.
+.keys.json
+
+# ⛔ THE LISTS LIVE ON THE MOUNTED DISK. Shipping them would push this machine's test rows over the
+# real ones on every deploy.
+site/lists
+
+# the 8 readings I made while building. Left in, a brand new site opens already knowing vitalik.
+site/cache_v2.json
+
+# rebuilt inside the image by npm ci
+node_modules
+
+# rendered output, working files, local noise
+site/png
+*.bak
+*.log
+*.tmp
+.git
+.gitignore

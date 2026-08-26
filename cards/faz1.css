@@ -1,0 +1,224 @@
+/* THE CARD CARRIES ITS OWN TYPE.
+   ⚠️ Before this the card owned no font files and fell through to whatever the machine happened to
+   have: Segoe UI on Windows, Helvetica Neue on a Mac, nothing at all inside a slim Linux container.
+   The same wallet produced a different card on every screen.
+   ⚠️ THE GREEK SUBSET IS NOT OPTIONAL. The card prints Ξ for every ETH figure, and Ξ is U+039E,
+   outside latin. Measured with canvas: with the latin file alone all three families fell back to a
+   system face for that one glyph, which on a container with no fonts installed is an empty box.
+   ⚠️ font-display:block, NOT swap. The PNG is taken by a headless browser that photographs whatever
+   is on screen at that instant; with swap it captures the fallback and nobody notices.
+   Inter + JetBrains Mono are the production faces named in the locked brand identity, Caveat is the
+   signature. All three SIL OFL: safe to embed, safe to sell against. */
+@font-face{font-family:'Inter';font-style:normal;font-weight:400 900;
+  font-display:block;src:url('fonts/inter.woff2') format('woff2');
+  unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'Inter';font-style:normal;font-weight:400 900;
+  font-display:block;src:url('fonts/inter-greek.woff2') format('woff2');
+  unicode-range:U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400 800;
+  font-display:block;src:url('fonts/jetbrainsmono.woff2') format('woff2');
+  unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400 800;
+  font-display:block;src:url('fonts/jetbrainsmono-greek.woff2') format('woff2');
+  unicode-range:U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF}
+@font-face{font-family:'Caveat';font-style:normal;font-weight:400 700;
+  font-display:block;src:url('fonts/caveat.woff2') format('woff2');
+  unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+
+/* FAZ 1 — the card, three ways. Real engine output, real art, real twins.
+   Brand is the locked one: the seven facet colours, warm paper, royal blue, mono micro-labels.
+   The Wrapped part is the SCALE, not a new palette: flat colour ground, oversized numerals, one
+   white block. Every card is built in cqw so it holds at any display width. */
+:root{
+  --paper:#f5f5f7; --ink:#111114; --muted:#6e6e78; --line:#e3e3e8; --blue:#0101ef;
+  --ground:#0d0d10; --dark:#17171c; --lit:#e9e9ef; --dim:#8b8b98;
+  --NEWBIE:#37c878; --COLLECTOR:#0101ef; --DEGEN:#e23b6d; --BUILDER:#fe0000;
+  --OG:#454b54;     --WHALE:#fcb913;    --GHOST:#99a2ad;
+  --NEWBIE-ink:#18804a; --COLLECTOR-ink:#0101ef; --DEGEN-ink:#b81f4c; --BUILDER-ink:#d40000;
+  --OG-ink:#454b54;     --WHALE-ink:#8a6205;    --GHOST-ink:#5d6672;
+  --mono:'JetBrains Mono',ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  --disp:'Inter',"Helvetica Neue",-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:#1a1a1f;color:var(--lit);font:400 15px/1.55 var(--disp)}
+.page{max-width:1720px;margin:0 auto;padding:30px 26px 120px}
+
+/* ── page furniture ───────────────────────────────────────────────────────────────────────────── */
+.top{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+.top h1{font:800 12px/1 var(--mono);letter-spacing:.42em;margin:0;color:#fff}
+.top .ph{font:700 11px/1 var(--mono);letter-spacing:.18em;color:var(--dim)}
+.lead{color:var(--dim);font-size:13.5px;max-width:940px;margin:0 0 22px}
+.lead b{color:var(--lit);font-weight:600}
+.ctrls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+  position:sticky;top:0;z-index:40;background:#1a1a1fee;backdrop-filter:blur(9px);
+  padding:12px 0;margin-bottom:26px;border-bottom:1px solid rgba(255,255,255,.09)}
+.seg{display:flex;border:1px solid rgba(255,255,255,.16);border-radius:8px;overflow:hidden}
+.seg button{appearance:none;border:0;background:transparent;color:var(--dim);cursor:pointer;
+  font:700 11px/1 var(--mono);letter-spacing:.14em;padding:9px 13px}
+.seg button+button{border-left:1px solid rgba(255,255,255,.12)}
+.seg button.on{background:#fff;color:#111114}
+.ctrls .lab{font:700 10px/1 var(--mono);letter-spacing:.2em;color:#5f5f6c;margin-right:2px}
+h2.sec{font:800 11px/1 var(--mono);letter-spacing:.3em;color:#fff;margin:44px 0 4px}
+p.sub{color:var(--dim);font-size:13px;margin:0 0 18px;max-width:880px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;align-items:start}
+@media(max-width:1180px){.grid3{grid-template-columns:1fr}}
+.slot h3{font:800 10.5px/1 var(--mono);letter-spacing:.22em;color:#fff;margin:0 0 3px}
+.slot .note{color:var(--dim);font-size:12px;margin:0 0 11px;min-height:32px}
+.slot .dim{font:600 10px/1 var(--mono);letter-spacing:.14em;color:#5f5f6c;margin-top:9px}
+.row5{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+@media(max-width:1180px){.row5{grid-template-columns:repeat(2,1fr)}}
+
+/* ── the shared card shell ────────────────────────────────────────────────────────────────────── */
+.card{position:relative;width:100%;overflow:hidden;container-type:inline-size;
+  border-radius:1.6cqw;box-shadow:0 16px 46px rgba(0,0,0,.5)}
+.card.r45{aspect-ratio:4/5}
+.card.r169{aspect-ratio:16/9}
+.card.r11{aspect-ratio:1/1}
+.card *{font-family:var(--disp)}
+.m{font-family:var(--mono);font-weight:700;letter-spacing:.16em}
+.abs{position:absolute}
+
+/* grain, so ink and stock share one surface */
+.card::after{content:'';position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;opacity:.42;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='90' height='90'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .42 0'/></filter><rect width='90' height='90' filter='url(%23g)'/></svg>")}
+.card.dark::after{mix-blend-mode:screen;opacity:.22}
+
+.art{background:#000;overflow:hidden;display:block;position:relative}
+.art img{width:100%;height:100%;display:block;image-rendering:pixelated}
+/* registration marks, the site's own furniture */
+.reg{position:absolute;width:2.6cqw;height:2.6cqw;opacity:.55}
+.reg::before,.reg::after{content:'';position:absolute;background:currentColor}
+.reg::before{left:50%;top:0;width:.16cqw;height:100%;transform:translateX(-50%)}
+.reg::after{top:50%;left:0;height:.16cqw;width:100%;transform:translateY(-50%)}
+/* halftone dot screen */
+.half{position:absolute;pointer-events:none;mix-blend-mode:multiply;opacity:.20;
+  background-image:radial-gradient(circle at center,rgba(0,0,0,.9) 33%,transparent 34%);
+  background-size:.85cqw .85cqw}
+/* the seven, as a spectrum strip weighted by each facet's real share of the collection */
+.spec{display:flex;overflow:hidden}
+.spec i{display:block;height:100%}
+.pill{display:inline-flex;align-items:center;gap:.55cqw;border-radius:99px;
+  font-family:var(--mono);font-weight:800;letter-spacing:.14em;white-space:nowrap}
+.tick{display:inline-block;width:.5cqw;height:.5cqw;border-radius:50%;background:currentColor}
+
+/* ══ L2b FURNITURE ═════════════════════════════════════════════════════════════════════════════════
+   Everything below is the second pass on the READOUT card. gruff, 2026-08-26: less empty space, a
+   bigger name with a rainbow contour, a patterned facet-coloured frame in the spirit of the site's
+   Collector frame, louder labels, a facet word that is not a flat fill, and a real signature. */
+
+/* THE FRAME. Lifted from site/index.html `.cframe`: a padded box masked to its own border, so the
+   corner radius follows the card exactly. Two rings: a conic sweep in the facet colour that fades
+   in and out round the edge, and a tick pattern over it, so it is never a solid line of colour. */
+.mframe{position:absolute;inset:0;border-radius:inherit;pointer-events:none;padding:.42cqw;
+  overflow:hidden;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
+.mframe i{position:absolute;left:50%;top:50%;width:190%;aspect-ratio:1;translate:-50% -50%;
+  background:conic-gradient(from .06turn,transparent 0 .04turn,var(--F) .17turn,transparent .30turn,
+    var(--F) .42turn,transparent .50turn,transparent .56turn,var(--F) .69turn,transparent .82turn,
+    var(--F) .94turn,transparent 1turn)}
+.mframe u{position:absolute;inset:0;text-decoration:none;
+  background:repeating-linear-gradient(90deg,#000 0 .5cqw,transparent .5cqw 1.1cqw);opacity:.55}
+
+/* THE NAME. Four stroked copies a hair out of register under a solid one: the same misregistered
+   print idea the brand already uses, in the facet palette, which is the rainbow you asked for. */
+.rname{position:relative;display:inline-block;white-space:nowrap}
+.rname i,.rname b{display:block;font:inherit;font-style:normal}
+.rname i{position:absolute;left:0;top:0;color:transparent;-webkit-text-stroke:.30cqw currentColor}
+.rname b{position:relative}
+
+/* THE FACET WORD. A foil sheen instead of one flat colour, so it reads as printed rather than typed.
+   ⚠️ background-clip:text needs a real background-image; a plain colour silently shows nothing. */
+.foil{-webkit-background-clip:text;background-clip:text;color:transparent;
+  background-repeat:no-repeat;background-size:100% 100%}
+
+/* THE SIGNATURE. A real handwriting face, with an honest fallback chain. An unsigned card gets the
+   same rule and an empty line above it, which is the whole mechanic in one piece of furniture. */
+.sign{font-family:'Caveat',"Segoe Script","Bradley Hand","Snell Roundhand",cursive}
+.sigline{height:.12cqw;background:currentColor;opacity:.45}
+
+/* the wallet's own art, huge and faint, bleeding off the edge so the ground is never empty black */
+.ghostart{position:absolute;pointer-events:none;opacity:.30;filter:saturate(1.7) blur(2.4cqw);
+  -webkit-mask-image:radial-gradient(ellipse at center,#000 30%,transparent 72%);
+  mask-image:radial-gradient(ellipse at center,#000 30%,transparent 72%)}
+.ghostart img{width:100%;height:100%;display:block;image-rendering:pixelated}
+.glow{position:absolute;pointer-events:none;border-radius:50%;filter:blur(6cqw);opacity:.30}
+
+/* the facet word, printed twice a hair out of register instead of filled with a gradient.
+   gruff killed the white foil sweep on 2026-08-26: the pale middle read as a smudge, not a finish. */
+.misfit{position:relative;display:inline-block;white-space:nowrap}
+.misfit i,.misfit b{display:block;font:inherit;font-style:normal}
+.misfit i{position:absolute;left:0;top:0}
+.misfit b{position:relative}
+
+/* the one rainbow on the card, and it is meant to be seen */
+.rbpill{border:.12cqw solid rgba(255,255,255,.28);background:rgba(255,255,255,.04)}
+.rbtext{-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800;
+  background-image:linear-gradient(92deg,#ff2d55 0%,#ff9500 26%,#ffd60a 46%,#32d74b 66%,#0a84ff 86%,#bf5af2 100%)}
+
+/* ══ RAINBOW FURNITURE (gruff, 2026-08-26) ═════════════════════════════════════════════════════════
+   One gradient definition, three uses: as text, as a rule, as a border. Repeating it in three places
+   is how the three end up different rainbows after the first edit to any of them. */
+:root{
+  --rainbow:linear-gradient(92deg,#ff2d55 0%,#ff9500 22%,#ffd60a 41%,#32d74b 60%,#0a84ff 80%,#bf5af2 100%);
+}
+.rbtext{-webkit-background-clip:text;background-clip:text;color:transparent;background-image:var(--rainbow)}
+.rbline{background-image:var(--rainbow);border-radius:99px}
+/* a hairline rainbow border: a padded box masked to its own edge, so the radius follows the box */
+.rbbox{}   /* ⛔ never set position here: it would override .abs and drop the box out of place */
+.rbbox::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:.13cqw;
+  background-image:var(--rainbow);pointer-events:none;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
+
+/* ══ FACET COLOUR AS TEXT ON THE DARK CARD ═════════════════════════════════════════════════════════
+   MEASURED 2026-08-26 against the card ground #0b0b0e:
+     NEWBIE 9.07 · DEGEN 4.75 · BUILDER 4.88 · WHALE 11.31 · GHOST 7.61   all fine
+     COLLECTOR 2.11 · OG 2.23                                            FAIL EVEN AS LARGE TEXT
+   COLLECTOR is 18.9% of the population and OG 6.0%, so a quarter of everyone would get a card whose
+   biggest word cannot be read. The site already carries a `-ink` set for the same problem on light
+   grounds; this is its dark twin. Only the two that fail are changed, so nothing else shifts.
+   ⚠️ `-lit` is for the colour used as TEXT. A PLATE is not text: knocked-out treatments and the
+   frame, glow and spectrum keep the true brand colour. */
+:root{
+  --NEWBIE-lit:#37c878; --COLLECTOR-lit:#6767f5; --DEGEN-lit:#e23b6d; --BUILDER-lit:#fe0000;
+  --OG-lit:#757a80;     --WHALE-lit:#fcb913;     --GHOST-lit:#99a2ad;
+}
+
+/* ══ THE CARD BURNS ════════════════════════════════════════════════════════════════════════════════
+   gruff, 2026-08-26, looking at a wallet that has moved tens of thousands of ether: a card that heavy
+   should look like it is on fire.
+   ⚠️ WHAT LIGHTS IT IS A NUMBER ALREADY PRINTED ON THE CARD. Total volume, ignition at 1,000 Ξ and
+   fully ablaze at 50,000 Ξ. Measured against the frozen 5,000: 6.74% reach 1,000 and 0.38% reach
+   50,000. Anything driven by taste would be a badge nobody could earn on purpose.
+   ⚠️ LAYER: in front of the blurred art cloud, behind everything else. It is placed between them in
+   the DOM rather than given a z-index, so nothing else has to know it exists.
+   ⚠️ The particle positions are seeded from the address, like every other value on this card. A fresh
+   roll per render would make the same wallet a different card on every load. */
+.fire{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:inherit}
+/* the bed: heat pooling along the bottom edge, under the embers */
+.fire .bed{position:absolute;left:-10%;right:-10%;bottom:-14%;height:52%;
+  background:radial-gradient(ellipse at 50% 100%,
+    rgba(255,176,48,.50) 0%, rgba(255,102,22,.32) 32%, rgba(196,44,10,.15) 56%, transparent 76%);
+  filter:blur(1.6cqw)}
+.fire i{position:absolute;display:block;border-radius:50%;opacity:.7;
+  background:radial-gradient(circle at 50% 50%,#fffaf0 0%,#ffd166 22%,#ff8a1f 52%,rgba(230,70,12,0) 76%);
+  filter:drop-shadow(0 0 .5cqw rgba(255,140,30,.75));
+  animation:emberrise linear infinite;animation-fill-mode:both}
+@keyframes emberrise{
+  0%   {transform:translate3d(0,0,0) scale(.75);opacity:.55}
+  16%  {opacity:1}
+  74%  {opacity:.6}
+  100% {transform:translate3d(var(--dx),calc(var(--rise) * -1),0) scale(.3);opacity:0}
+}
+/* ⚠️ reduce STILLS the embers rather than hiding the fire: the heat bed stays, so a card that should
+   look heavy still does, without anything moving. */
+@media (prefers-reduced-motion: reduce){ .fire i{animation:none;opacity:.5} }
+
+/* the wordmark, at card scale. Same chip as the page header and the claim copy: one FACETS, one look,
+   everywhere it appears. gruff 2026-08-26: "tüm FACETS'lar aynı olsun". */
+.wmc{display:inline-block;background:var(--paper);border-radius:.34cqw;padding:.12cqw .42cqw .2cqw;
+  vertical-align:baseline}
+.wmc b{font:800 1.35cqw/1 var(--disp);letter-spacing:-.04em;color:#0101ef}
