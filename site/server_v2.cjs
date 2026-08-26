@@ -467,6 +467,12 @@ http.createServer(async (req, res) => {
         'X-Rows': String(out.count), 'X-Rejected': String(out.rejected),
         'X-Excluded': out.excluded.join(',') || 'none' });
     }
+    // the two lists gruff asked to be able to ask for, as files a spreadsheet will open
+    const csvOut = (out, name) => send(res, 200, out.csv, 'text/csv; charset=utf-8',
+      { 'X-Rows': String(out.count), 'Content-Disposition': 'inline; filename="' + name + '"' });
+    if (u.pathname === '/api/lists/reads.csv') return csvOut(CLAIMS.readsCsv(), 'reads.csv');
+    if (u.pathname === '/api/lists/wallets.csv') return csvOut(CLAIMS.uniqueReadsCsv(), 'wallets.csv');
+    if (u.pathname === '/api/lists/signed.csv') return csvOut(CLAIMS.signedCsv(), 'signed.csv');
     return json(res, 404, { error: 'no such list' });
   }
 

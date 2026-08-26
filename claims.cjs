@@ -231,5 +231,46 @@ function unsign(addr) {
            backup: path.basename(backup) };
 }
 
+// EVERY WALLET EVER ENTERED, AND EVERY WALLET THAT SIGNED, AS CSV.
+// ⚠️ These two lists are the point of the exercise and they live only on the mounted disk, so there
+// has to be a way to take a copy off the box. Admin only: reads.jsonl is who looked up whom.
+// `readsCsv` gives one row per READ, which is deliberately not deduplicated: how often a wallet was
+// looked at is itself the signal. `uniqueReadsCsv` collapses it to one row per address.
+const csvCell = v => {
+  const s = v == null ? '' : String(v);
+  const CR = String.fromCharCode(13), LF = String.fromCharCode(10), QT = String.fromCharCode(34);
+  const needs = s.indexOf(',') >= 0 || s.indexOf(QT) >= 0 || s.indexOf(CR) >= 0 || s.indexOf(LF) >= 0;
+  return needs ? QT + s.split(QT).join(QT + QT) + QT : s;
+};
+const csvOf = (head, rows) => [head.join(',')].concat(rows.map(r => r.map(csvCell).join(','))).join(String.fromCharCode(10)) + String.fromCharCode(10);
+
+function readsCsv() {
+  const rows = readJsonl(READS).map(r => [r.t, r.addr, r.facet || '', r.cached ? 'cached' : 'fresh']);
+  return { csv: csvOf(['read_at', 'address', 'facet', 'source'], rows), count: rows.length };
+}
+
+function uniqueReadsCsv() {
+  const by = new Map();
+  for (const r of readJsonl(READS)) {
+    const a = String(r.addr || '').toLowerCase();
+    if (!a) continue;
+    const e = by.get(a) || { first: r.t, last: r.t, n: 0, facet: r.facet || '' };
+    e.n++; e.last = r.t; if (r.facet) e.facet = r.facet;
+    by.set(a, e);
+  }
+  const rows = [...by.entries()].sort((x, y) => y[1].n - x[1].n)
+    .map(([a, e]) => [a, e.facet, e.n, e.first, e.last]);
+  return { csv: csvOf(['address', 'facet', 'times_read', 'first_read', 'last_read'], rows), count: rows.length };
+}
+
+// the signed list as itself, not as a mint file: fcfsCsv is shaped by price and per-wallet limit
+function signedCsv() {
+  const rows = signedLatest().sort((a, b) => (a.t < b.t ? -1 : 1))
+    .map(r => [r.t, r.addr, r.name || '', r.handle || '', r.facet || '',
+               EXCLUDED.has(String(r.addr).toLowerCase()) ? 'excluded' : 'eligible']);
+  return { csv: csvOf(['signed_at', 'address', 'name', 'x_handle', 'facet', 'status'], rows), count: rows.length };
+}
+
 module.exports = { MESSAGE, issueNonce, claim, stats, fcfsCsv, verifyAll, signedLatest, unsign,
+                   readsCsv, uniqueReadsCsv, signedCsv,
                    logRead, cleanText, cleanHandle, EXCLUDED, READS, SIGNED };
