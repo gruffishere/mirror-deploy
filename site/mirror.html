@@ -123,6 +123,10 @@ button.ghost{background:transparent;color:#e9e9ef;border:1px solid rgba(255,255,
 .claim p{margin:0;font-size:15.5px;color:#9a9aa8;max-width:68ch}
 .claim .deal{margin-top:14px;color:#c9c9d4;line-height:1.7;font-size:16px}
 .claim .deal b{color:#fff;font-weight:700}
+.claim .mine{margin:2px 0 0}
+.claim .mine a{font:700 12px/1 var(--mono);letter-spacing:.14em;color:#6f6f7c;cursor:pointer;
+  border-bottom:1px solid rgba(255,255,255,.18)}
+.claim .mine a:hover{color:#fff}
 /* the same wordmark as the top of the page, at caption size, so FACETS reads as the brand inside a
    sentence rather than as a shouted word */
 /* ⚠️ SAME CHIP, ONE SIZE DOWN. gruff: every FACETS on the page should be the one in the header. It
@@ -372,13 +376,23 @@ function show() {
 function drawClaim() {
   const c = $('#claim');
   if (SIGNED) {
+    // ⚠️ SOMEBODY ELSE'S SIGNED NAME IS NOT AN INPUT.
+    // Anyone can read anyone's wallet, so anyone landing on a signed one used to find that name
+    // and handle sitting in editable boxes. Nothing could be changed without a signature from
+    // that wallet, checked in claims.cjs, so this was never a way in. It just looked like one,
+    // which is its own kind of wrong on a page whose whole argument is that a name has to be
+    // earned. It reads as a fact now, and the owner asks for the boxes.
+    const who = TYPED.handle ? '@' + TYPED.handle : (TYPED.name || 'this wallet');
     c.innerHTML = '<h3>SIGNED</h3>' +
-      '<p>This wallet is on the list and its card holds a ticket. Your name is on the card.</p>' +
-      '<div class="fields">' +
+      '<p>Signed by <b style="color:#fff">' + esc(who) + '</b>. This wallet is on the list and its ' +
+      'card holds a ticket.</p>' +
+      '<p class="mine"><a id="mine">this is my wallet</a></p>' +
+      '<div class="fields" id="ff" style="display:none">' +
         '<input id="nm" maxlength="24" placeholder="name" value="' + esc(TYPED.name || '') + '">' +
         '<input id="hd" maxlength="16" placeholder="@handle" value="' + esc(TYPED.handle ? '@' + TYPED.handle : '') + '">' +
         '<button class="ghost" id="resign">UPDATE</button>' +
       '</div>';
+    $('#mine').onclick = () => { $('#ff').style.display = 'flex'; $('#mine').parentNode.style.display = 'none'; };
     $('#resign').onclick = sign;
   } else {
     c.innerHTML = '<h3>PUT YOUR NAME ON IT</h3>' +
@@ -604,9 +618,22 @@ $('#png').onclick = async () => {
 };
 $('#tweet').onclick = () => {
   const p = DATA.profile, m = DATA.mirror || {};
-  const line = 'I am ' + p.dominant + ' on THE MIRROR' +
-    (m.rank ? ', #' + m.rank.n + ' of ' + m.n : '') + '.\n\nwho are you on chain?';
-  window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(line), '_blank', 'noopener');
+  // ⛔ THE LINK IS THE POINT, AND IT WAS NOT IN THE TWEET.
+  // It named a facet and gave nobody a way to reach the site, so every share was a dead end and
+  // no card ever unfurled. The page already emits og:image for any address it has read, pointing
+  // at that wallet's own card, so the URL carries the picture with it.
+  const url = location.origin + '/?addr=' + encodeURIComponent(ADDR);
+  const score = Math.round(100 * p.axes[p.dominant]);
+  const mix = m.near === 0 ? 'Nobody in 5,000 shares my mix.'
+            : m.near ? m.near + ' of 5,000 share my mix.' : '';
+  const line = 'I am ' + p.dominant + '. ' + score + '.' +
+    (mix ? '\n\n' + mix : '') + '\n\nwho are you on chain?\n' + url;
+  // ⚠️ AN ANCHOR CLICK, NOT window.open. A popup opened from script is blocked often enough on
+  // mobile that the button simply did nothing, which is what gruff saw.
+  const a = document.createElement('a');
+  a.href = 'https://x.com/intent/post?text=' + encodeURIComponent(line);
+  a.target = '_blank'; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
 };
 
 // ── the square that watches you ───────────────────────────────────────────────────────────────────
