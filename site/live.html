@@ -1,0 +1,78 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LIVE — THE MIRROR</title>
+<link rel="stylesheet" href="/cards/faz1.css">
+<style>
+html,body{margin:0;background:#0b0b0e;color:#e9e9ef;font:400 15px/1.5 var(--disp);
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:20px 18px 80px}
+.top{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.wm{background:var(--paper);border-radius:7px;padding:5px 10px 6px;text-decoration:none}
+.wm b{font:800 20px/1 var(--disp);letter-spacing:-.05em;color:#0101ef}
+.sub{font:800 10px/1 var(--mono);letter-spacing:.36em;color:#5f5f6c}
+.dot{margin-left:auto;font:700 10px/1 var(--mono);letter-spacing:.2em;color:#37c878}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:26px}
+.k{border:1px solid rgba(255,255,255,.13);border-radius:13px;padding:14px 15px 16px}
+.k .n{font:900 34px/1 var(--disp);letter-spacing:-.03em}
+.k .l{font:700 9.5px/1 var(--mono);letter-spacing:.18em;color:#6f6f7c;margin-top:9px}
+h2{font:800 10px/1 var(--mono);letter-spacing:.28em;color:#9a9aa8;margin:26px 0 10px}
+table{width:100%;border-collapse:collapse;font:600 12.5px/1 var(--mono)}
+td{padding:9px 6px;border-bottom:1px solid #17171d;color:#b9b9c6;white-space:nowrap}
+td.a{color:#6f6f7c;font-size:11.5px}
+td.f{font-weight:800;text-align:right}
+.empty{color:#5f5f6c;font:600 13px/1.6 var(--disp);padding:14px 0}
+.err{color:#e23b6d}
+</style></head><body><div class="wrap">
+<div class="top"><a class="wm" href="/"><b>FACETS</b></a><span class="sub">LIVE</span>
+  <span class="dot" id="dot">&bull; CONNECTING</span></div>
+<div class="grid" id="k"></div>
+<h2>WALLETS READ &mdash; NEWEST FIRST</h2><div id="w"></div>
+<h2>SIGNED</h2><div id="s"></div>
+</div>
+<script>
+// ⚠️ EVERYTHING BEFORE THIS MOMENT WAS ME TESTING. 26 addresses, one of them read 33 times. Counting
+// them as visitors would make the first hour look like a crowd that was never there.
+const LAUNCH = new Date('2026-08-27T00:00:00Z');
+const TOKEN = new URLSearchParams(location.search).get('token') || '';
+const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const short = a => a.slice(0, 8) + '…' + a.slice(-4);
+const ago = t => { const s = (Date.now() - new Date(t)) / 1000;
+  return s < 60 ? Math.round(s) + 's' : s < 3600 ? Math.round(s/60) + 'm' : Math.round(s/3600) + 'h'; };
+
+async function tick() {
+  try {
+    const [st, wcsv, sg] = await Promise.all([
+      fetch('/api/status').then(r => r.json()),
+      fetch('/api/lists/wallets.csv?token=' + encodeURIComponent(TOKEN)).then(r => r.ok ? r.text() : Promise.reject(r.status)),
+      fetch('/api/signed').then(r => r.json())
+    ]);
+    const rows = wcsv.split('\n').filter(Boolean).slice(1).map(l => l.split(','))
+      .map(c => ({ addr: c[0], facet: c[1], n: +c[2], first: c[3], last: c[4] }))
+      .filter(r => new Date(r.first) >= LAUNCH);
+    const reads = rows.reduce((a, r) => a + r.n, 0);
+    document.getElementById('k').innerHTML = [
+      [rows.length, 'WALLETS'], [reads, 'READS'], [sg.n, 'SIGNED'], [st.queue, 'IN QUEUE']
+    ].map(([n, l]) => '<div class="k"><div class="n">' + n + '</div><div class="l">' + l + '</div></div>').join('');
+
+    rows.sort((a, b) => a.last < b.last ? 1 : -1);
+    document.getElementById('w').innerHTML = rows.length
+      ? '<table>' + rows.slice(0, 40).map(r => '<tr><td class="a">' + short(r.addr) + '</td>' +
+          '<td>' + ago(r.last) + ' ago</td><td class="a">' + r.n + '&times;</td>' +
+          '<td class="f" style="color:var(--' + esc(r.facet) + '-lit)">' + esc(r.facet) + '</td></tr>').join('') + '</table>'
+      : '<p class="empty">Nobody yet. The post is out; give it a minute.</p>';
+
+    document.getElementById('s').innerHTML = sg.n
+      ? '<table>' + sg.rows.map(r => '<tr><td>' + esc(r.name || short(r.addr)) + '</td>' +
+          '<td class="a">' + (r.handle ? '@' + esc(r.handle) : '') + '</td><td>' + ago(r.t) + ' ago</td>' +
+          '<td class="f" style="color:var(--' + esc(r.facet) + '-lit)">' + esc(r.facet || '') + '</td></tr>').join('') + '</table>'
+      : '<p class="empty">Nobody has signed yet.</p>';
+
+    document.getElementById('dot').className = 'dot';
+    document.getElementById('dot').textContent = '• LIVE';
+  } catch (e) {
+    document.getElementById('dot').className = 'dot err';
+    document.getElementById('dot').textContent = e === 403 ? '• BAD TOKEN' : '• NO CONNECTION';
+  }
+}
+tick(); setInterval(tick, 10000);
+</script></body></html>

@@ -408,6 +408,13 @@ http.createServer(async (req, res) => {
   // It exists because the lists live on a mounted disk that nothing else can reach: without it the
   // only way to correct a row is a shell on the container, and there is not always one. Every
   // request is printed, so the log says who was removed and when even though the row is gone.
+  // the board gruff watches during a launch. The page is admin gated because the list it draws is,
+  // and it carries the token in the URL exactly like every other admin route here.
+  if (u.pathname === '/live') {
+    if (!ADMIN || u.searchParams.get('token') !== ADMIN) return json(res, 403, { error: 'no' });
+    return send(res, 200, fs.readFileSync(path.join(__dirname, 'live.html')), 'text/html; charset=utf-8');
+  }
+
   if (u.pathname === '/api/admin/unsign') {
     if (!ADMIN || u.searchParams.get('token') !== ADMIN) return json(res, 403, { error: 'no' });
     const a = String(u.searchParams.get('addr') || '').toLowerCase();
