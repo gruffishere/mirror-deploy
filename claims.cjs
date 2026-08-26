@@ -249,18 +249,22 @@ function readsCsv() {
   return { csv: csvOf(['read_at', 'address', 'facet', 'source'], rows), count: rows.length };
 }
 
-function uniqueReadsCsv() {
+// ⚠️ `nameOf` IS PASSED IN, not looked up here. Only the server holds the readings, and a wallet's
+// ENS lives in its reading; this file only ever sees the log. Without it every row is forty hex
+// characters and a person watching a launch cannot tell who arrived.
+function uniqueReadsCsv(nameOf) {
   const by = new Map();
   for (const r of readJsonl(READS)) {
     const a = String(r.addr || '').toLowerCase();
     if (!a) continue;
-    const e = by.get(a) || { first: r.t, last: r.t, n: 0, facet: r.facet || '' };
-    e.n++; e.last = r.t; if (r.facet) e.facet = r.facet;
+    const e = by.get(a) || { first: r.t, last: r.t, n: 0, facet: r.facet || '', ens: r.ens || '' };
+    e.n++; e.last = r.t; if (r.facet) e.facet = r.facet; if (r.ens) e.ens = r.ens;
     by.set(a, e);
   }
   const rows = [...by.entries()].sort((x, y) => y[1].n - x[1].n)
-    .map(([a, e]) => [a, e.facet, e.n, e.first, e.last]);
-  return { csv: csvOf(['address', 'facet', 'times_read', 'first_read', 'last_read'], rows), count: rows.length };
+    .map(([a, e]) => [a, (e.ens || (nameOf ? nameOf(a) : '') || ''), e.facet, e.n, e.first, e.last]);
+  return { csv: csvOf(['address', 'ens', 'facet', 'times_read', 'first_read', 'last_read'], rows),
+           count: rows.length };
 }
 
 // the signed list as itself, not as a mint file: fcfsCsv is shaped by price and per-wallet limit

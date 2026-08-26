@@ -478,7 +478,9 @@ http.createServer(async (req, res) => {
     const csvOut = (out, name) => send(res, 200, out.csv, 'text/csv; charset=utf-8',
       { 'X-Rows': String(out.count), 'Content-Disposition': 'inline; filename="' + name + '"' });
     if (u.pathname === '/api/lists/reads.csv') return csvOut(CLAIMS.readsCsv(), 'reads.csv');
-    if (u.pathname === '/api/lists/wallets.csv') return csvOut(CLAIMS.uniqueReadsCsv(), 'wallets.csv');
+    // rows logged before ens was recorded still get a name, out of the reading the cache holds
+    const ensOf = a => { const r = cache.get(a); return (r && r.signals && r.signals.ens) || ''; };
+    if (u.pathname === '/api/lists/wallets.csv') return csvOut(CLAIMS.uniqueReadsCsv(ensOf), 'wallets.csv');
     if (u.pathname === '/api/lists/signed.csv') return csvOut(CLAIMS.signedCsv(), 'signed.csv');
     return json(res, 404, { error: 'no such list' });
   }
@@ -507,7 +509,8 @@ http.createServer(async (req, res) => {
     // a cached answer costs nothing, so it never queues and never touches the uncached ration
     if (!refresh && cache.has(addr)) {
       const row = cache.get(addr);
-      CLAIMS.logRead(addr, { facet: row.profile && row.profile.dominant, cached: true });
+      CLAIMS.logRead(addr, { facet: row.profile && row.profile.dominant, cached: true,
+                             ens: (row.signals && row.signals.ens) || null });
       return json(res, 200, { ...row, cached: true, resolvedFrom,
         claimed: CLAIMED.get(addr) || null, mirror: extras(row.profile) });
     }
@@ -522,7 +525,8 @@ http.createServer(async (req, res) => {
     const place = depth + 1;
     try {
       const out = await queue(() => read(addr, refresh));
-      CLAIMS.logRead(addr, { facet: out.profile && out.profile.dominant, cached: false });
+      CLAIMS.logRead(addr, { facet: out.profile && out.profile.dominant, cached: false,
+                             ens: (out.signals && out.signals.ens) || null });
       return json(res, 200, { ...out, resolvedFrom, queuedAt: place,
         claimed: CLAIMED.get(addr) || null, mirror: extras(out.profile) });
     } catch (e) {
