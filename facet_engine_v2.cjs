@@ -721,7 +721,11 @@ function facts(s) {
 
 // ⚠️ EXPORTED SO THE SITE RUNS THE SAME CODE THE CALIBRATION RAN ON. A second scoring implementation
 // living in the server is exactly how a one rule, two copies bug happens.
-module.exports = { FACETS, signals, axes, calibrate, profile, facts, buildPop, pct, ethUsd, TOKENS, walkComplete, MAX_PAGES, SHAPE_KEYS,
+// ⚠️ EXPOSED SO THE SERVER CAN REFUSE TO PRETEND. Running with no keys is not a degraded mode: every
+// wallet comes back as "never transacted" and looks like a real answer.
+const hasKeys = () => !!(KEYS && KEYS.etherscan && KEYS.alchemy);
+
+module.exports = { hasKeys, FACETS, signals, axes, calibrate, profile, facts, buildPop, pct, ethUsd, TOKENS, walkComplete, MAX_PAGES, SHAPE_KEYS,
                    resolveName, ethCall };
 
 if (require.main !== module) return;

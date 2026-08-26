@@ -60,17 +60,31 @@ fs.mkdirSync(CACHE_DIR, { recursive: true });
 const cache = new Map();
 const cfile = a => path.join(CACHE_DIR, a + '.json');
 (function loadCache() {
-  let n = 0;
+  let n = 0, dropped = 0;
   for (const f of fs.readdirSync(CACHE_DIR)) {
     if (!f.endsWith('.json')) continue;
-    try { cache.set(f.slice(0, -5), JSON.parse(fs.readFileSync(path.join(CACHE_DIR, f), 'utf8'))); n++; } catch {}
+    try {
+      const row = JSON.parse(fs.readFileSync(path.join(CACHE_DIR, f), 'utf8'));
+      // ⛔ DROP ANY READING THAT WAS NEVER ACTUALLY READ, AND DELETE IT.
+      // While the keys were not reaching the container the server stored 'this wallet has never
+      // transacted' for every wallet anyone looked up, then served it from cache forever after.
+      // Measured on the live site: gunslinger.eth, 4,101 transactions and 2,000 days old, sat on
+      // disk as empty. read() can no longer write one, but the ones already written have to go.
+      // A wallet that genuinely never transacted has rowCount 0; null means the walk never happened.
+      if (row && row.signals && row.signals.rowCount == null) {
+        fs.unlinkSync(path.join(CACHE_DIR, f));
+        dropped++;
+        continue;
+      }
+      cache.set(f.slice(0, -5), row); n++;
+    } catch {}
   }
   // the old single-file cache is still read, so nothing already answered is lost in the move
   try {
     const old = JSON.parse(fs.readFileSync(LEGACY, 'utf8'));
     for (const a of Object.keys(old)) if (!cache.has(a)) { cache.set(a, old[a]); n++; }
   } catch {}
-  console.log(n + ' addresses in the cache');
+  console.log(n + ' addresses in the cache' + (dropped ? '  (dropped ' + dropped + ' that had never actually been read)' : ''));
 })();
 const remember = (a, row) => { cache.set(a, row); fs.writeFile(cfile(a), JSON.stringify(row), () => {}); };
 
@@ -172,8 +186,16 @@ async function read(addr, refresh) {
   const all = STORY.beats(s, s.shape, p, base.pop);
   const row = { profile: p, signals: s, at: new Date().toISOString(),
                 story: { card: STORY.card(all, 4), report: all, closing: STORY.closing(s, p) } };
-  remember(addr, row);
-  return { ...row, cached: false };
+  // ⛔ A FAILED FETCH MUST NEVER BE STORED AS AN ANSWER.
+  // rowCount is 0 for a wallet that genuinely never transacted and null when the walk could not be
+  // made at all; collsRaw is the same for the holdings leg. Both render identically as "you hold
+  // nothing at all", so writing the second one to disk turns a passing outage into a permanent wrong
+  // answer for that wallet. Measured on the live site: with the keys not reaching the container,
+  // gunslinger.eth — 4,101 transactions, 2,000 days old, 205 collections — was stored as empty and
+  // then served from cache, which is how it was found.
+  const unread = s.rowCount == null || s.collsRaw == null;
+  if (!unread) remember(addr, row);
+  return { ...row, cached: false, partial: unread };
 }
 
 // ── RATE LIMIT ────────────────────────────────────────────────────────────────────────────────────
@@ -293,7 +315,8 @@ http.createServer(async (req, res) => {
 
   // what the page needs in order to tell somebody WHY they are waiting
   if (u.pathname === '/api/status')
-    return json(res, 200, { cached: cache.size, queue: depth, lanes: LANES, maxQueue: MAX_QUEUE });
+    return json(res, 200, { cached: cache.size, queue: depth, lanes: LANES, maxQueue: MAX_QUEUE,
+                            keys: E.hasKeys() });
 
   // the mascot sprite and its metadata, copied from the FACETS site so the Mirror can carry the same
   // token #1066 that watches you there
@@ -485,6 +508,13 @@ http.createServer(async (req, res) => {
 }).listen(PORT, () => {
   console.log('THE MIRROR api  ->  http://localhost:' + PORT);
   console.log('baseline ' + base.n + ' wallets, built ' + base.built);
+  // ⛔ THE LOUDEST LINE IN THIS FILE, because the failure it names is silent everywhere else.
+  if (!E.hasKeys()) {
+    console.log('');
+    console.log('NO API KEYS. Every uncached wallet will read as if it has never transacted,');
+    console.log('and that reads exactly like a real answer. Set ETHERSCAN_KEY and ALCHEMY_KEY.');
+    console.log('');
+  }
   console.log('lanes ' + LANES + ' · max queue ' + MAX_QUEUE +
     ' · limits ' + LIMIT.any.n + '/min any, ' + LIMIT.fresh.n + '/min uncached' +
     ' · refresh ' + (ADMIN ? 'admin only' : 'DISABLED (no --admin token)'));
