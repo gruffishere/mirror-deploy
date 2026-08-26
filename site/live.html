@@ -30,9 +30,14 @@ td.f{font-weight:800;text-align:right}
 <h2>SIGNED</h2><div id="s"></div>
 </div>
 <script>
-// ⚠️ EVERYTHING BEFORE THIS MOMENT WAS ME TESTING. 26 addresses, one of them read 33 times. Counting
-// them as visitors would make the first hour look like a crowd that was never there.
-const LAUNCH = new Date('2026-08-27T00:00:00Z');
+// ⚠️ EVERYTHING BEFORE THIS MOMENT IS TESTING, ours and gruff's both. 30 addresses were read while
+// we were building, one of them 33 times, and counting them as visitors would make the first hour
+// look like a crowd that was never there.
+// ⚠️ AND THE FIRST VERSION OF THIS LINE WAS SET TO MIDNIGHT UTC, WHICH WAS STILL IN THE FUTURE.
+// The board read zero while people were actually arriving, because every real visitor was being
+// filed as one of ours. The cutoff is a real measured moment now: the last test read was 22:38 and
+// the post traffic starts at 23:34.
+const LAUNCH = new Date(new URLSearchParams(location.search).get('since') || '2026-08-26T23:00:00Z');
 const TOKEN = new URLSearchParams(location.search).get('token') || '';
 const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const short = a => a.slice(0, 8) + '…' + a.slice(-4);
