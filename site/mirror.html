@@ -208,7 +208,7 @@ footer p{margin:0 0 9px;max-width:80ch}
     <div class="heroin"><div class="col">
     <h1>Who are you<br>on chain?</h1>
     <p class="lede">Paste a wallet. It gets read against <b>5,000 real Ethereum wallets</b> and comes
-      back as one of seven facets, with a piece of FACETS art drawn from the address itself.</p>
+      back as one of seven facets, with a piece of <span class="wm sm"><b>FACETS</b></span> art drawn from the address itself.</p>
 
     <form id="f" autocomplete="off">
       <input type="text" id="a" placeholder="0x… or a name.eth" spellcheck="false">
@@ -239,7 +239,7 @@ footer p{margin:0 0 9px;max-width:80ch}
     <p>Rank and rarity are measured against a fixed reference of 5,000 real Ethereum wallets, not
       against all of Ethereum. Holdings are read on Ethereum only and spam is removed, so the piece
       count is lower than a marketplace will show, by design.</p>
-    <p>The artwork is a real FACETS render seeded by the address. Its token id sits far outside the
+    <p>The artwork is a real <span class="wm sm"><b>FACETS</b></span> render seeded by the address. Its token id sits far outside the
       collection's range, so a Mirror piece can never be a token.</p>
   </footer>
 </div>
@@ -337,7 +337,7 @@ function drawClaim() {
   const c = $('#claim');
   if (SIGNED) {
     c.innerHTML = '<h3>SIGNED</h3>' +
-      '<p>This wallet is on the FCFS list and in the draw for guaranteed spots. Your name is on the card.</p>' +
+      '<p>This wallet is on the list and its card holds a ticket. Your name is on the card.</p>' +
       '<div class="fields">' +
         '<input id="nm" maxlength="24" placeholder="name" value="' + esc(TYPED.name || '') + '">' +
         '<input id="hd" maxlength="16" placeholder="@handle" value="' + esc(TYPED.handle ? '@' + TYPED.handle : '') + '">' +
@@ -348,13 +348,13 @@ function drawClaim() {
     c.innerHTML = '<h3>PUT YOUR NAME ON IT</h3>' +
       "<p>Anyone can read anyone’s wallet, so a name only goes on a card the owner signed for. " +
       'Signing costs no gas and moves nothing.</p>' +
-      // ⚠️ SPELLED OUT, because "it puts this wallet on the FCFS list and in the draw" was two
-      // different promises inside one clause and read as one. They are separate: signing IS the FCFS
-      // entry, and the raffle among tickets is the CHANCE at a GTD spot. One is certain, one is not.
+      // ⚠️ THE PRIZE IS DELIBERATELY NOT NAMED. gruff wants the ticket to be a surprise. One concrete
+      // thing stays, on purpose: that signing puts you on the list. Curiosity is a reason to read the
+      // paragraph; it is not on its own a reason to connect a wallet and sign a message.
       '<p class="deal">Enter your name and X handle and sign with your wallet, and your card gets a ' +
-      '<b>ticket</b>. Signing puts you straight into the <b>FCFS phase</b> of the ' +
-      '<span class="wm sm"><b>FACETS</b></span> mint, and the raffle drawn among the tickets is your ' +
-      'shot at a <b>GTD spot</b>.</p>' +
+      '<b>ticket</b>. A ticket to what? To whatever <span class=\"wm sm\"><b>FACETS</b></span> has coming. ' +
+      'You are on the list either way. Don’t think about it too hard: sign, wait, and it might ' +
+      'turn out to be you.</p>' +
       '<div class="fields">' +
         '<input id="nm" maxlength="24" placeholder="name">' +
         '<input id="hd" maxlength="16" placeholder="@handle">' +
@@ -403,8 +403,8 @@ async function sign() {
     const el = document.createElement('div');
     el.className = 'ok';
     el.innerHTML = '<div class="tick">&#10003;</div><div class="txt">' +
-      '<b>Signed.</b> This wallet is on the <b>FCFS list</b> and your card holds a <b>ticket</b> in the ' +
-      'draw for a GTD spot. Your name is on the card now. ' +
+      '<b>Signed.</b> You are on the list, and your card holds a <b>ticket</b>. What it is for, you ' +
+      'will find out. Your name is on the card now. ' +
       '<a href="/signed">See it on the board</a>.</div>';
     c.appendChild(el);
   } catch (e) {
@@ -530,7 +530,7 @@ function drawReport() {
         'scaling a partial count up once produced 153,080 pieces for a wallet holding a tenth of that.</p>'
       : '') +
     '<p class="note"><b>This is not the mint.</b> A facet you can compute is a facet you can farm, so ' +
-    'FACETS assigns faces by VRF instead: the chain hands you a face you did not choose. What this page ' +
+    '<span class="wm sm"><b>FACETS</b></span> assigns faces by VRF instead: the chain hands you a face you did not choose. What this page ' +
     'shows is which of the seven your history leans toward, and the answer is never just one.</p>' +
     '<p class="note">' + (DATA.cached ? 'Served from cache, read ' + esc(DATA.at) : 'Fresh read') +
     ' &middot; distance ' + p.distance.toFixed(3) + ' &middot; rarer than ' +

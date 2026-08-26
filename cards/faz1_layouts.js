@@ -416,7 +416,7 @@ function L2b(v) {
   const heroSupport = 'You lean <b style="color:#fff;font-weight:700">' + v.dom + '</b>, ' +
     (TAGLINE[v.dom] || '') + '. <b style="color:' + v.runnerLit + '">' + v.runnerUp + '</b> ' +
     (gap === 0 ? 'is level with it.' : 'is ' + gap + ' behind.');
-  const heroAside = v.near === 0 ? 'NOBODY IN 5,000 LIKE YOU' : v.near + ' OF 5,000 LIKE YOU';
+  const heroAside = v.near === 0 ? 'NOBODY IN 5,000 SHARES YOUR MIX' : v.near + ' OF 5,000 SHARE YOUR MIX';
 
   return '' +
 '<div class="card r169 dark" style="background:#0b0b0e;color:var(--lit);--F:' + v.colour + '">' +
@@ -434,10 +434,11 @@ function L2b(v) {
     '<div class="m" style="font-size:1.15cqw;color:var(--dim);display:flex;align-items:baseline;gap:.6cqw">' +
       '<span class="wmc"><b>FACETS</b></span>' +
       '<span>&middot; THE MIRROR &middot; ' + MIRROR_HOST + '</span></div>' +
-    // ⚠️ the card is signed by whoever made it, and only when there IS somebody to name. An unsigned
-    // card says nothing here rather than inventing a byline out of an address.
-    (v.handle ? '<div class="m" style="font-size:.95cqw;color:#5f5f6c;margin-top:.5cqw">by ' +
-      esc(v.handle) + '</div>' : '') +
+    // ⚠️ THE ARTIST, FIXED, ON EVERY CARD. This used to print v.handle, which is the handle of
+    // WHOEVER SIGNED. On gruff's own card the two are the same person, so it looked correct and was
+    // wrong everywhere else: someone else's card carried their name as the byline, and an unsigned
+    // card carried none. The signer is already named beside the portrait; this line credits the work.
+    '<div class="m" style="font-size:.95cqw;color:#5f5f6c;margin-top:.5cqw">by @gruffwashere</div>' +
   '</div>' +
 
   // the piece
