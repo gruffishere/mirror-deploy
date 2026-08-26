@@ -21,6 +21,12 @@ RUN npm ci --omit=dev --no-audit --no-fund
 
 COPY . .
 
+# ⛔ THE EXECUTE BIT CANNOT BE TRUSTED TO SURVIVE. It was set on the file and Windows does not record
+# it in git, so the first deploy built perfectly and then refused to start: "We do not have
+# permission to execute your start command". Setting it here means it no longer depends on which
+# machine the commit was made on.
+RUN chmod +x /app/docker-entrypoint.sh
+
 # ⛔ THE TWO DIRECTORIES THAT MUST OUTLIVE A DEPLOY.
 # Everything under /app is replaced wholesale each time this image is rebuilt. signed.jsonl is the
 # one file in this project that CANNOT be reconstructed: a signature can only be re-verified against
