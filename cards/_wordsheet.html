@@ -1,0 +1,37 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/cards/faz1.css">
+<style>
+html,body{margin:0;background:#0b0b0e;color:#e9e9ef;font-family:var(--disp)}
+.wrap{container-type:inline-size;width:1600px;padding:26px 34px 40px}
+h1{font:800 12px/1 var(--mono);letter-spacing:.3em;color:#9a9aa8;margin:0 0 6px}
+.sub{font:600 12px/1.5 var(--mono);color:#4d4d58;margin:0 0 26px}
+.t{padding:18px 0 22px;border-bottom:1px solid #17171d}
+.hd{display:flex;align-items:baseline;gap:14px;margin-bottom:14px}
+.nm{font:800 11px/1 var(--mono);letter-spacing:.2em;color:#fff}
+.ds{font:600 11.5px/1 var(--mono);color:#55555f}
+.row{display:flex;align-items:flex-end;gap:46px;flex-wrap:wrap}
+.cell{flex:0 0 auto}
+.fl{font:800 8.5px/1 var(--mono);letter-spacing:.18em;color:#3d3d46;margin-bottom:8px}
+</style>
+<div class="wrap"><h1>THE FACET WORD &mdash; EVERY TREATMENT</h1>
+<p class="sub">one is drawn for each wallet from its address &middot; measured even, 12.49&ndash;12.51% each across 20,000 addresses</p>
+<div id="o"></div></div>
+<script src="/cards/facetword.js"></script>
+<script>
+const PLATE = { BUILDER:'COLLECTOR', DEGEN:'COLLECTOR', WHALE:'COLLECTOR',
+  NEWBIE:'COLLECTOR', COLLECTOR:'BUILDER', OG:'COLLECTOR', GHOST:'DEGEN' };
+const FW = window.FACETWORD, T = FW.T, L = FW.LABEL;
+const SHOW = ['BUILDER','COLLECTOR','WHALE','OG'];
+const ART = '/api/art.svg?addr=0x4730497622bdfd6eafe1f09fa22b3a0aca94a646&facet=BUILDER';
+let html = '';
+for (const k of FW.ORDER) {
+  html += '<div class="t"><div class="hd"><span class="nm">' + L[k][0] + '</span>' +
+          '<span class="ds">' + L[k][1] + '</span></div><div class="row">';
+  for (const f of SHOW) {
+    const lit = 'var(--' + f + '-lit)', plate = 'var(--' + PLATE[f] + '-lit)';
+    html += '<div class="cell"><div class="fl">' + f + '</div>' +
+            T[k](f, lit, plate, ART, 17, 'var(--' + f + ')') + '</div>';
+  }
+  html += '</div></div>';
+}
+document.getElementById('o').innerHTML = html;
+</script>

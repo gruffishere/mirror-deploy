@@ -33,7 +33,7 @@
   --paper:#f5f5f7; --ink:#111114; --muted:#6e6e78; --line:#e3e3e8; --blue:#0101ef;
   --ground:#0d0d10; --dark:#17171c; --lit:#e9e9ef; --dim:#8b8b98;
   --NEWBIE:#37c878; --COLLECTOR:#0101ef; --DEGEN:#e23b6d; --BUILDER:#fe0000;
-  --OG:#454b54;     --WHALE:#fcb913;    --GHOST:#99a2ad;
+  --OG:#5b6472;     --WHALE:#fcb913;    --GHOST:#99a2ad;
   --NEWBIE-ink:#18804a; --COLLECTOR-ink:#0101ef; --DEGEN-ink:#b81f4c; --BUILDER-ink:#d40000;
   --OG-ink:#454b54;     --WHALE-ink:#8a6205;    --GHOST-ink:#5d6672;
   --mono:'JetBrains Mono',ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
@@ -183,8 +183,8 @@ p.sub{color:var(--dim);font-size:13px;margin:0 0 18px;max-width:880px}
    ⚠️ `-lit` is for the colour used as TEXT. A PLATE is not text: knocked-out treatments and the
    frame, glow and spectrum keep the true brand colour. */
 :root{
-  --NEWBIE-lit:#37c878; --COLLECTOR-lit:#6767f5; --DEGEN-lit:#e23b6d; --BUILDER-lit:#fe0000;
-  --OG-lit:#757a80;     --WHALE-lit:#fcb913;     --GHOST-lit:#99a2ad;
+  --NEWBIE-lit:#37c878; --COLLECTOR-lit:#3d4dff; --DEGEN-lit:#e23b6d; --BUILDER-lit:#fe0000;
+  --OG-lit:#75839b;     --WHALE-lit:#fcb913;     --GHOST-lit:#99a2ad;
 }
 
 /* ══ THE CARD BURNS ════════════════════════════════════════════════════════════════════════════════

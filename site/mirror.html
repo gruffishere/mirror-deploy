@@ -90,6 +90,27 @@ button.ghost{background:transparent;color:#e9e9ef;border:1px solid rgba(255,255,
 #out{display:none;padding:0 0 90px}
 #out.on{display:block}
 .cardwrap{max-width:1000px;margin:0 auto}
+
+/* declared BEFORE the media query on purpose: same specificity, so whichever comes last wins */
+.swipe{display:none;font:700 11px/1 var(--mono);letter-spacing:.16em;color:#5f5f6c;
+  margin:10px auto 0;max-width:1000px}
+
+/* THE CARD ON A PHONE.
+   ⚠️ IT CANNOT SIMPLY SHRINK. Everything on the card is sized in cqw, a percentage of the card's
+   own width, so at 375px the card is 331px wide and its labels compute to 3.0px. Measured, not
+   guessed. Shrinking further is not a fix for something that is already too small.
+   900px is the smallest width where the labels reach 10.3px and the finest text 8.5px, so the card
+   is held at that and the frame scrolls: one and a half swipes, and the card stays the exact
+   16:9 artifact that gets downloaded and shared rather than becoming a second, mobile-only design.
+   The scrollbar is hidden because the hint below says it better. */
+@media(max-width:900px){
+  .cardwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+    border-radius:14px}
+  .cardwrap::-webkit-scrollbar{display:none}
+  .cardwrap .card{min-width:900px}
+  .swipe{display:block}
+  .acts{margin-top:14px}
+}
 .acts{display:flex;gap:10px;flex-wrap:wrap;margin:20px auto 0;max-width:1000px}
 .acts button{height:58px;font-size:14px;letter-spacing:.18em;padding:0 30px}
 .asof{max-width:1000px;margin:14px auto 0;font:600 12.5px/1.5 var(--mono);color:#5f5f6c}
@@ -231,6 +252,7 @@ footer p{margin:0 0 9px;max-width:80ch}
 
   <section id="out">
     <div class="cardwrap" id="card"></div>
+    <p class="swipe">&#8592; SWIPE THE CARD</p>
     <div class="acts">
       <button class="ghost" id="png">DOWNLOAD THE CARD</button>
       <button class="ghost" id="tweet">SHARE ON X</button>

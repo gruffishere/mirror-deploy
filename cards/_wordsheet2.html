@@ -1,0 +1,49 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/cards/faz1.css">
+<style>
+html,body{margin:0;background:#0b0b0e;color:#e9e9ef;font-family:var(--disp)}
+.wrap{container-type:inline-size;width:1600px;padding:24px 34px 40px}
+h1{font:800 12px/1 var(--mono);letter-spacing:.3em;color:#9a9aa8;margin:0 0 4px}
+h2{font:800 11px/1 var(--mono);letter-spacing:.26em;color:#fff;margin:30px 0 4px;
+   padding-top:22px;border-top:1px solid #22222a}
+.sub{font:600 11.5px/1.5 var(--mono);color:#4d4d58;margin:0 0 16px}
+.t{padding:14px 0 18px;border-bottom:1px solid #17171d}
+.hd{display:flex;align-items:baseline;gap:13px;margin-bottom:12px}
+.nm{font:800 10.5px/1 var(--mono);letter-spacing:.2em;color:#fff}
+.ds{font:600 11px/1 var(--mono);color:#55555f}
+.row{display:flex;align-items:flex-end;gap:52px;flex-wrap:wrap}
+.fl{font:800 8.5px/1 var(--mono);letter-spacing:.18em;color:#3d3d46;margin-bottom:8px}
+</style>
+<div class="wrap">
+<h1>DEGEN &middot; NEWBIE &middot; GHOST &mdash; EVERY TREATMENT</h1>
+<p class="sub">the other four are on the first sheet</p>
+<div id="o"></div>
+<h2>COLLECTOR &mdash; THE BLUE</h2>
+<p class="sub">now / the collection's own / three lifts that keep the saturation</p><div id="c"></div>
+<h2>OG &mdash; INSTEAD OF THE GREY</h2>
+<p class="sub">now / rust is the most common patina in OG's own artwork (34 of 100)</p><div id="g"></div>
+</div>
+<script src="/cards/facetword.js"></script>
+<script>
+const T = window.FACETWORD.T, L = window.FACETWORD.LABEL, ORDER = window.FACETWORD.ORDER;
+const PLATE = { DEGEN:'COLLECTOR', NEWBIE:'COLLECTOR', GHOST:'DEGEN' };
+const ART = '/api/art.svg?addr=0x4730497622bdfd6eafe1f09fa22b3a0aca94a646&facet=BUILDER';
+let h = '';
+for (const k of ORDER) {
+  h += '<div class="t"><div class="hd"><span class="nm">' + L[k][0] + '</span><span class="ds">' + L[k][1] + '</span></div><div class="row">';
+  for (const f of ['DEGEN','NEWBIE','GHOST'])
+    h += '<div><div class="fl">' + f + '</div>' +
+         T[k](f, 'var(--' + f + '-lit)', 'var(--' + PLATE[f] + '-lit)', ART, 17, 'var(--' + f + ')') + '</div>';
+  h += '</div></div>';
+}
+document.getElementById('o').innerHTML = h;
+
+const strip = (word, list, plate) => list.map(([n, c]) =>
+  '<div><div class="fl">' + n + '<br><span style="color:#2e2e36">' + c + '</span></div>' +
+  T.solid(word, c, plate, ART, 15) + '</div>').join('');
+document.getElementById('c').innerHTML = '<div class="row">' + strip('COLLECTOR', [
+  ['NOW','#6767f5'], ['COLLECTION','#0101ef'], ['LIFT A','#2b3bff'], ['LIFT B','#3d4dff'], ['LIFT C','#4a5cff']
+], 'var(--BUILDER-lit)') + '</div>';
+document.getElementById('g').innerHTML = '<div class="row">' + strip('OG', [
+  ['NOW','#757a80'], ['RUST','#c2521f'], ['COPPER','#d1662c'], ['BRONZE','#b8763a'], ['PATINA','#9c4a2a']
+], 'var(--COLLECTOR-lit)') + '</div>';
+</script>
