@@ -19,7 +19,7 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 SEED="$DIR/site/cache"
 MARK="$MIRROR_CACHE_DIR/.seeded"
 
-mkdir -p "$MIRROR_LISTS_DIR" "$MIRROR_CACHE_DIR"
+mkdir -p "$MIRROR_LISTS_DIR" "$MIRROR_CACHE_DIR" "$MIRROR_PNG_DIR"
 
 if [ -d "$SEED" ] && [ ! -f "$MARK" ]; then
   echo "seeding the pre-warmed cache from $SEED"

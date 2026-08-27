@@ -32,7 +32,8 @@ RUN chmod +x /app/docker-entrypoint.sh
 # one file in this project that CANNOT be reconstructed: a signature can only be re-verified against
 # the exact bytes that were signed, and those bytes live in the row. Mount a disk at /data.
 ENV MIRROR_LISTS_DIR=/data/lists \
-    MIRROR_CACHE_DIR=/data/cache
+    MIRROR_CACHE_DIR=/data/cache \
+    MIRROR_PNG_DIR=/data/png
 
 EXPOSE 8141
 ENTRYPOINT ["/app/docker-entrypoint.sh"]

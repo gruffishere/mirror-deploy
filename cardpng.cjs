@@ -13,7 +13,11 @@
 const fs = require('fs'), path = require('path'), os = require('os');
 const { spawn } = require('child_process');
 
-const OUT = path.join(__dirname, 'site', 'png');
+// ⛔ THIS BELONGS ON THE MOUNTED DISK IN PRODUCTION.
+// Beside the code it is wiped by every deploy, so all 128 drawn cards vanish and the board goes
+// blank again while they are redrawn one at a time. On the disk they survive, and a card is drawn
+// exactly once in its life.
+const OUT = process.env.MIRROR_PNG_DIR || path.join(__dirname, 'site', 'png');
 fs.mkdirSync(OUT, { recursive: true });
 
 const CANDIDATES = [

@@ -88,6 +88,18 @@ const cfile = a => path.join(CACHE_DIR, a + '.json');
 })();
 const remember = (a, row) => { cache.set(a, row); fs.writeFile(cfile(a), JSON.stringify(row), () => {}); };
 
+// EVERYTHING THAT CHANGES THE PICTURE, IN ONE PLACE.
+// ⚠️ The route and the pre-renderer BOTH need this and they must agree. If they drift, the
+// background draws files under names the route never looks for and the board stays empty while the
+// disk fills up with cards nobody can reach.
+function stampOf(a) {
+  const row = cache.get(a);
+  if (!row) return null;
+  const c = CLAIMED.get(a);
+  return (row.at || '0').replace(/[^0-9]/g, '').slice(0, 14) +
+    (c ? '_' + Buffer.from((c.name || '') + '|' + (c.handle || '')).toString('hex').slice(0, 16) : '');
+}
+
 let price = null, priceAt = 0;
 
 // ── WHAT THE CARD NEEDS THAT THE READING DOES NOT CONTAIN ─────────────────────────────────────────
@@ -316,7 +328,8 @@ http.createServer(async (req, res) => {
   // what the page needs in order to tell somebody WHY they are waiting
   if (u.pathname === '/api/status')
     return json(res, 200, { cached: cache.size, queue: depth, lanes: LANES, maxQueue: MAX_QUEUE,
-                            keys: E.hasKeys() });
+                            keys: E.hasKeys(),
+                            cardsDrawn: preDrawn, cardsGivenUp: preFails.size });
 
   // the mascot sprite and its metadata, copied from the FACETS site so the Mirror can carry the same
   // token #1066 that watches you there
@@ -354,8 +367,7 @@ http.createServer(async (req, res) => {
     // the stamp is everything that changes the picture, so a card that gains a name after signing
     // stops serving the anonymous one
     const c = CLAIMED.get(a);
-    const stamp = (cache.get(a).at || '0').replace(/[^0-9]/g, '').slice(0, 14) +
-      (c ? '_' + Buffer.from((c.name || '') + '|' + (c.handle || '')).toString('hex').slice(0, 16) : '');
+    const stamp = stampOf(a);
     // already drawn: hand it over, charge nothing
     const ready = CARDPNG.cachedFile(a, stamp);
     if (fs.existsSync(ready)) {
@@ -547,9 +559,11 @@ http.createServer(async (req, res) => {
   }
 
   json(res, 404, { error: 'not found' });
+
 }).listen(PORT, () => {
   console.log('THE MIRROR api  ->  http://localhost:' + PORT);
   console.log('baseline ' + base.n + ' wallets, built ' + base.built);
+  console.log('cards drawn ahead of time into ' + CARDPNG.OUT + ', one every ' + (PRE_EVERY / 1000) + 's');
   // ⛔ THE LOUDEST LINE IN THIS FILE, because the failure it names is silent everywhere else.
   if (!E.hasKeys()) {
     console.log('');
@@ -567,3 +581,49 @@ http.createServer(async (req, res) => {
     ' signed' + (st.signedFailingVerification ? '  ⛔ ' + st.signedFailingVerification +
     ' FAILING VERIFICATION' : ''));
 });
+
+// ⛔ THIS LIVES AT THE END OF THE FILE ON PURPOSE.
+// It was first placed against the "}).listen(PORT" line, whose leading brace closes the REQUEST
+// HANDLER rather than opening the server, so the whole block ended up INSIDE the handler: the
+// constant was invisible to the startup log, and setInterval would have been armed again on every
+// request. The server refused to boot at all, which is the only reason it was noticed.
+// ── DRAW THE CARDS BEFORE ANYBODY ASKS FOR THEM ───────────────────────────────────────────────────
+// ⛔ A BOARD OF A HUNDRED CARDS CANNOT BE DRAWN WHILE SOMEBODY WATCHES IT. Each card is a browser
+// launch of about three seconds and they are serialised, so a board that draws on demand always has
+// a tail nobody ever sees. gruff opened it to twenty blank tiles, and it gets worse as more people
+// sign: the newest signer is always last in the queue.
+// The signed list is known in advance, so the cards are drawn here instead and the board only ever
+// reads finished files off disk. Nothing about a visitor's own card changes; that path is unchanged.
+//
+// ⚠️ ONE AT A TIME, SPACED. A visitor asking for their own card shares this renderer, and must never
+// wait behind more than one of these.
+// ⚠️ AND A CARD THAT REFUSES TO DRAW IS GIVEN UP ON. Without the counter, one wallet that throws
+// would be retried every four seconds forever and no other card would ever be reached.
+const PRE_EVERY = 4000, PRE_GIVE_UP = 3;
+const preFails = new Map();
+let preBusy = false, preDrawn = 0;
+
+async function prerenderTick() {
+  if (preBusy || !CARDPNG.chrome) return;
+  preBusy = true;
+  try {
+    for (const r of CLAIMS.signedLatest()) {
+      const a = String(r.addr || '').toLowerCase();
+      if ((preFails.get(a) || 0) >= PRE_GIVE_UP) continue;
+      const stamp = stampOf(a);
+      if (!stamp) continue;                                   // never read, nothing to draw from
+      if (fs.existsSync(CARDPNG.cachedFile(a, stamp))) continue;
+      try {
+        await CARDPNG.cardPng('http://127.0.0.1:' + PORT, a, stamp);
+        preDrawn++;
+        preFails.delete(a);
+      } catch (e) {
+        preFails.set(a, (preFails.get(a) || 0) + 1);
+        console.log('pre-draw failed for ' + a + ': ' + e.message.slice(0, 60));
+      }
+      break;                                                  // exactly one per tick
+    }
+  } catch (e) { console.log('pre-draw loop: ' + e.message.slice(0, 60)); }
+  preBusy = false;
+}
+setInterval(prerenderTick, PRE_EVERY);
