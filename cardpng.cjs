@@ -47,7 +47,13 @@ function shoot(url, file) {
     // ⚠️ a FRESH profile every time. Reusing one serves a byte-identical cached PNG even when the
     // page changed, which is the most confusing possible failure: the export silently goes stale.
     const prof = fs.mkdtempSync(path.join(os.tmpdir(), 'mirror-shot-'));
+    // ⛔ --disable-dev-shm-usage IS NOT OPTIONAL IN A CONTAINER.
+    // Docker gives /dev/shm 64MB by default and Chrome renders through it, so a page this heavy
+    // dies part way and leaves no file: 'the renderer produced nothing usable'. It never happens on
+    // Windows, which is why every local render succeeded while eleven wallets on the live site could
+    // not be drawn at all. This makes it use /tmp instead.
     const args = ['--headless=new', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',
+      '--disable-dev-shm-usage', '--disable-software-rasterizer',
       '--user-data-dir=' + prof, '--virtual-time-budget=12000',
       '--window-size=' + WIDTH + ',' + HEIGHT, '--screenshot=' + file, url];
     const p = spawn(chrome, args, { stdio: 'ignore' });

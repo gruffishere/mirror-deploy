@@ -329,7 +329,9 @@ http.createServer(async (req, res) => {
   if (u.pathname === '/api/status')
     return json(res, 200, { cached: cache.size, queue: depth, lanes: LANES, maxQueue: MAX_QUEUE,
                             keys: E.hasKeys(),
-                            cardsDrawn: preDrawn, cardsGivenUp: preFails.size,
+                            claimsOpen: claimsOpen(), cardsDrawn: preDrawn,
+                            cardsGivenUp: [...preFails.values()].filter(x => x.n >= PRE_GIVE_UP &&
+                                            Date.now() - x.at < PRE_COOLDOWN).length,
                             // ⚠️ THE PATHS, BECAUSE "IT SHOULD BE ON THE DISK" IS NOT A MEASUREMENT.
                             // If the card store is not on the mounted volume, every deploy wipes it
                             // and the board goes blank again. This makes that answerable from outside
@@ -445,6 +447,17 @@ http.createServer(async (req, res) => {
     return send(res, 200, fs.readFileSync(path.join(__dirname, 'live.html')), 'text/html; charset=utf-8');
   }
 
+  // open or close signing, without a deploy
+  if (u.pathname === '/api/admin/claims') {
+    if (!ADMIN || u.searchParams.get('token') !== ADMIN) return json(res, 403, { error: 'no' });
+    const want = u.searchParams.get('open');
+    if (want === '1') { try { fs.unlinkSync(CLOSED_FLAG); } catch {} }
+    else if (want === '0') { fs.mkdirSync(path.dirname(CLOSED_FLAG), { recursive: true });
+                             fs.writeFileSync(CLOSED_FLAG, new Date().toISOString()); }
+    console.log('admin claims -> ' + (claimsOpen() ? 'OPEN' : 'CLOSED'));
+    return json(res, 200, { claimsOpen: claimsOpen() });
+  }
+
   if (u.pathname === '/api/admin/unsign') {
     if (!ADMIN || u.searchParams.get('token') !== ADMIN) return json(res, 403, { error: 'no' });
     const a = String(u.searchParams.get('addr') || '').toLowerCase();
@@ -474,6 +487,7 @@ http.createServer(async (req, res) => {
 
   // ── the claim ───────────────────────────────────────────────────────────────────────────────────
   if (u.pathname === '/api/nonce' && req.method === 'POST') {
+    if (!claimsOpen()) return json(res, 403, { error: 'signing is closed' });
     const wait = allow(ip, 'any');
     if (wait) return json(res, 429, { error: 'too many requests, try again in ' + wait + 's' }, { 'Retry-After': wait });
     let b; try { b = await body(req); } catch (e) { return json(res, 400, { error: e.message }); }
@@ -483,6 +497,9 @@ http.createServer(async (req, res) => {
   }
 
   if (u.pathname === '/api/claim' && req.method === 'POST') {
+    // ⚠️ CHECKED HERE TOO. A nonce handed out a second before the close is still a valid nonce,
+    // and without this it could be spent afterwards.
+    if (!claimsOpen()) return json(res, 403, { error: 'signing is closed' });
     const wait = allow(ip, 'claim');
     if (wait) return json(res, 429, { error: 'too many signatures, try again in ' + wait + 's' }, { 'Retry-After': wait });
     let b; try { b = await body(req); } catch (e) { return json(res, 400, { error: e.message }); }
@@ -542,7 +559,7 @@ http.createServer(async (req, res) => {
       CLAIMS.logRead(addr, { facet: row.profile && row.profile.dominant, cached: true,
                              ens: (row.signals && row.signals.ens) || null });
       return json(res, 200, { ...row, cached: true, resolvedFrom,
-        claimed: CLAIMED.get(addr) || null, mirror: extras(row.profile) });
+        claimed: CLAIMED.get(addr) || null, claimsOpen: claimsOpen(), mirror: extras(row.profile) });
     }
 
     const fw = allow(ip, 'fresh');
@@ -558,7 +575,7 @@ http.createServer(async (req, res) => {
       CLAIMS.logRead(addr, { facet: out.profile && out.profile.dominant, cached: false,
                              ens: (out.signals && out.signals.ens) || null });
       return json(res, 200, { ...out, resolvedFrom, queuedAt: place,
-        claimed: CLAIMED.get(addr) || null, mirror: extras(out.profile) });
+        claimed: CLAIMED.get(addr) || null, claimsOpen: claimsOpen(), mirror: extras(out.profile) });
     } catch (e) {
       return json(res, 500, { error: String(e && e.message || e) });
     }
@@ -606,7 +623,19 @@ http.createServer(async (req, res) => {
 // ⚠️ AND A CARD THAT REFUSES TO DRAW IS GIVEN UP ON. Without the counter, one wallet that throws
 // would be retried every four seconds forever and no other card would ever be reached.
 const PRE_EVERY = 4000, PRE_GIVE_UP = 3;
+// ⚠️ A COUNT AND A TIME, NOT JUST A COUNT. Three strikes used to retire a wallet for the lifetime
+// of the process, so a render that failed while the box was busy left that person's card missing
+// forever and nothing ever looked again. Eleven cards were lost that way on the first night. The
+// count now expires, and the loop comes back to them.
+// ⛔ SIGNING IS CLOSED AT THE SERVER, NOT IN THE PAGE. Hiding the button would leave /api/claim
+// open to anyone who has seen the network tab, and the list this gates is the mint list. The flag
+// is a file on the MOUNTED disk on purpose: a restart or a deploy must not quietly reopen it.
+const CLOSED_FLAG = path.join(process.env.MIRROR_LISTS_DIR ||
+  path.join(__dirname, '..', 'site', 'lists'), 'claims.closed');
+const claimsOpen = () => !fs.existsSync(CLOSED_FLAG);
+
 const preFails = new Map();
+const PRE_COOLDOWN = 10 * 60e3;
 let preBusy = false, preDrawn = 0;
 
 async function prerenderTick() {
@@ -615,7 +644,9 @@ async function prerenderTick() {
   try {
     for (const r of CLAIMS.signedLatest()) {
       const a = String(r.addr || '').toLowerCase();
-      if ((preFails.get(a) || 0) >= PRE_GIVE_UP) continue;
+      const f = preFails.get(a);
+      if (f && f.n >= PRE_GIVE_UP && Date.now() - f.at < PRE_COOLDOWN) continue;
+      if (f && f.n >= PRE_GIVE_UP) preFails.delete(a);      // cooldown over, it gets another chance
       const stamp = stampOf(a);
       if (!stamp) continue;                                   // never read, nothing to draw from
       if (fs.existsSync(CARDPNG.cachedFile(a, stamp))) continue;
@@ -624,7 +655,7 @@ async function prerenderTick() {
         preDrawn++;
         preFails.delete(a);
       } catch (e) {
-        preFails.set(a, (preFails.get(a) || 0) + 1);
+        preFails.set(a, { n: ((preFails.get(a) || {}).n || 0) + 1, at: Date.now() });
         console.log('pre-draw failed for ' + a + ': ' + e.message.slice(0, 60));
       }
       break;                                                  // exactly one per tick

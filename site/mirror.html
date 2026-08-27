@@ -375,6 +375,15 @@ function show() {
 // ── the claim ─────────────────────────────────────────────────────────────────────────────────────
 function drawClaim() {
   const c = $('#claim');
+  // ⚠️ THE PAGE FOLLOWS THE SERVER, it does not decide. /api/nonce and /api/claim refuse on their
+  // own when signing is closed; this only stops the page offering a form that cannot be posted.
+  if (DATA && DATA.claimsOpen === false && !SIGNED) {
+    c.innerHTML = '<h3>SIGNING IS CLOSED</h3>' +
+      '<p>Enough wallets have signed. The list is settled and this card is still yours to keep: ' +
+      'download it, share it, and see everyone who signed on the ' +
+      '<a href="/signed" style="color:#fff">board</a>.</p>';
+    return;
+  }
   if (SIGNED) {
     // ⚠️ SOMEBODY ELSE'S SIGNED NAME IS NOT AN INPUT.
     // Anyone can read anyone's wallet, so anyone landing on a signed one used to find that name
