@@ -205,7 +205,7 @@ async function read(addr, refresh) {
 // traffic the site gets: it is one bored person with a loop, not a crowd.
 const BUCKETS = new Map();
 const LIMIT = { any: { n: 60, per: 60e3 }, fresh: { n: 6, per: 60e3 }, claim: { n: 10, per: 60e3 },
-                png: { n: 8, per: 60e3 } };
+                png: { n: 14, per: 60e3 } };
 function allow(ip, kind) {
   const now = Date.now();
   let b = BUCKETS.get(ip);
@@ -334,9 +334,12 @@ http.createServer(async (req, res) => {
   // they were looking at. Rendering is heavy and serialised, so it gets its own ration rather than
   // sharing the cheap one: a page load costs one read and one art call, but only one PNG.
   if (u.pathname === '/api/card.png') {
-    const wait = allow(ip, 'png');
-    if (wait) return json(res, 429, { error: 'one card at a time, try again in ' + wait + 's' },
-      { 'Retry-After': wait });
+    // ⛔ THE RATION IS CHARGED FOR A RENDER, NOT FOR A REQUEST, and it used to be charged here,
+    // before anything had looked to see whether the card already existed. The signed board asks for
+    // one card per signer in a single page load, so the ninth image onward came back 429 and drew a
+    // broken-image mark: some cards appeared and some did not, which is exactly what gruff saw.
+    // Serving a file that is already on disk costs nothing and is now free. Only a browser launch
+    // spends the allowance, which is what the allowance was protecting.
     let a = String(u.searchParams.get('addr') || '').trim();
     if (!/^0x[0-9a-fA-F]{40}$/.test(a)) {
       const r = await E.resolveName(a).catch(() => null);
@@ -353,6 +356,15 @@ http.createServer(async (req, res) => {
     const c = CLAIMED.get(a);
     const stamp = (cache.get(a).at || '0').replace(/[^0-9]/g, '').slice(0, 14) +
       (c ? '_' + Buffer.from((c.name || '') + '|' + (c.handle || '')).toString('hex').slice(0, 16) : '');
+    // already drawn: hand it over, charge nothing
+    const ready = CARDPNG.cachedFile(a, stamp);
+    if (fs.existsSync(ready)) {
+      return send(res, 200, fs.readFileSync(ready), 'image/png',
+        { 'Cache-Control': 'public, max-age=31536000, immutable' });
+    }
+    const wait = allow(ip, 'png');
+    if (wait) return json(res, 429, { error: 'one card at a time, try again in ' + wait + 's' },
+      { 'Retry-After': wait });
     try {
       const file = await CARDPNG.cardPng('http://127.0.0.1:' + PORT, a, stamp);
       const name = (c && c.handle ? c.handle : (cache.get(a).signals.ens || a.slice(0, 10)))

@@ -40,6 +40,13 @@ h1{font:900 clamp(30px,4.6vw,60px)/1 var(--disp);letter-spacing:-.045em;margin:3
 .tile .hd{font:600 12.5px/1 var(--mono);color:#6f6f7c}
 .tile .fc{margin-left:auto;font:800 10px/1 var(--mono);letter-spacing:.14em}
 .empty{color:#6f6f7c;padding:40px 0}
+/* the card that never arrived says so, rather than showing the browser's torn-paper icon */
+.tile.later img{visibility:hidden}
+.tile.later{position:relative}
+.tile.later::after{content:'STILL DRAWING';position:absolute;inset:0;display:flex;
+  align-items:center;justify-content:center;border-radius:10px;background:#0b0b0e;
+  border:1px solid rgba(255,255,255,.10);font:800 10px/1 var(--mono);letter-spacing:.2em;
+  color:#4a4a55;aspect-ratio:16/9}
 </style></head><body>
 
 <div class="wrap">
@@ -70,7 +77,7 @@ fetch('/api/signed').then(r => r.json()).then(j => {
   }
   document.getElementById('grid').innerHTML = j.rows.map(r =>
     '<div class="tile">' +
-      '<img loading="lazy" alt="" data-full="1" src="/api/card.png?addr=' + encodeURIComponent(r.addr) + '">' +
+      '<img loading="lazy" alt="" data-full="1" data-tries="0" ' +
       '<div class="who">' +
         '<span class="nm">' + esc(r.name || short(r.addr)) + '</span>' +
         (r.handle ? '<span class="hd">@' + esc(r.handle) + '</span>' : '') +
@@ -80,6 +87,21 @@ fetch('/api/signed').then(r => r.json()).then(j => {
 }).catch(() => {
   document.getElementById('count').textContent = 'could not load the list';
 });
+
+// ⚠️ A CARD THAT IS NOT DRAWN YET IS NOT A BROKEN CARD.
+// Rendering is serialised and rationed, so on a board nobody has opened before, the later tiles can
+// come back 429 while the queue works through the earlier ones. The browser draws its broken-image
+// mark for that, which reads as a fault in the card rather than a card still being made. Each tile
+// waits and asks again instead, twice, spaced out, and only then gives up quietly.
+document.addEventListener('error', e => {
+  const t = e.target;
+  if (!t || t.tagName !== 'IMG' || !t.dataset.full) return;
+  const n = +(t.dataset.tries || 0);
+  if (n >= 2) { t.closest('.tile').classList.add('later'); return; }
+  t.dataset.tries = n + 1;
+  const src = t.src.split('&_')[0];
+  setTimeout(() => { t.src = src + '&_=' + n; }, 4000 * (n + 1));
+}, true);
 
 // ⚠️ delegated, because the tiles are built after this runs and rebuilt whenever the list changes
 const lb = document.getElementById('lb'), lbimg = lb.querySelector('img');

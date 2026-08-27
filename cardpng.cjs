@@ -67,7 +67,10 @@ async function cardPng(origin, addr, stamp) {
   return queue(() => shoot(url, file));
 }
 
-module.exports = { cardPng, chrome, WIDTH, HEIGHT, OUT };
+// ⚠️ EXPORTED so the server can ask whether a card already exists WITHOUT the two of them keeping
+// separate ideas of what the file is called.
+const cachedFile = (addr, stamp) => path.join(OUT, keyOf(addr, stamp));
+module.exports = { cardPng, chrome, WIDTH, HEIGHT, OUT, keyOf, cachedFile };
 
 if (require.main === module) {
   const a = process.argv[2];
