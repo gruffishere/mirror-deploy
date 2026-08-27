@@ -329,7 +329,13 @@ http.createServer(async (req, res) => {
   if (u.pathname === '/api/status')
     return json(res, 200, { cached: cache.size, queue: depth, lanes: LANES, maxQueue: MAX_QUEUE,
                             keys: E.hasKeys(),
-                            cardsDrawn: preDrawn, cardsGivenUp: preFails.size });
+                            cardsDrawn: preDrawn, cardsGivenUp: preFails.size,
+                            // ⚠️ THE PATHS, BECAUSE "IT SHOULD BE ON THE DISK" IS NOT A MEASUREMENT.
+                            // If the card store is not on the mounted volume, every deploy wipes it
+                            // and the board goes blank again. This makes that answerable from outside
+                            // in one request, instead of being discovered by a blank board.
+                            paths: { cards: CARDPNG.OUT, cache: CACHE_DIR, lists: CLAIMS.DIR || null },
+                            cardsOnDisk: (() => { try { return fs.readdirSync(CARDPNG.OUT).length; } catch { return -1; } })() });
 
   // the mascot sprite and its metadata, copied from the FACETS site so the Mirror can carry the same
   // token #1066 that watches you there
