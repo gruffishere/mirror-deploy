@@ -43,6 +43,10 @@ h1{font:900 clamp(30px,4.6vw,60px)/1 var(--disp);letter-spacing:-.045em;margin:3
 .tile .hd{font:600 12.5px/1 var(--mono);color:#6f6f7c}
 .tile .fc{margin-left:auto;font:800 10px/1 var(--mono);letter-spacing:.14em}
 .empty{color:#6f6f7c;padding:40px 0}
+/* stated on the board too: this is the page people are sent to, and a list nobody can join any
+   more should say so rather than leaving them looking for the button. */
+.closed{display:inline-block;margin:0 0 30px;font:800 10.5px/1 var(--mono);letter-spacing:.2em;
+  color:#9a9aa8;border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:9px 15px}
 /* the card that never arrived says so, rather than showing the browser's torn-paper icon */
 .tile.later img{visibility:hidden}
 .tile.later{position:relative}
@@ -60,6 +64,7 @@ h1{font:900 clamp(30px,4.6vw,60px)/1 var(--disp);letter-spacing:-.045em;margin:3
 
   <h1>Signed</h1>
   <p class="count" id="count">…</p>
+  <p class="closed" id="closed" hidden>SIGNING IS CLOSED &middot; THIS LIST IS SETTLED</p>
 
   <div class="grid" id="grid"></div>
 </div>
@@ -69,6 +74,10 @@ h1{font:900 clamp(30px,4.6vw,60px)/1 var(--disp);letter-spacing:-.045em;margin:3
 const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g,
   c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const short = a => a.slice(0, 6) + '…' + a.slice(-4);
+
+fetch('/api/status').then(r => r.json())
+  .then(st => { if (st.claimsOpen === false) document.getElementById('closed').hidden = false; })
+  .catch(() => {});
 
 fetch('/api/signed').then(r => r.json()).then(j => {
   // ⚠️ COUNTED FROM THE ROWS ON SCREEN, not from a second endpoint, so the tally and the tiles can

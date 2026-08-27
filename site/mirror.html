@@ -395,14 +395,22 @@ function drawClaim() {
     c.innerHTML = '<h3>SIGNED</h3>' +
       '<p>Signed by <b style="color:#fff">' + esc(who) + '</b>. This wallet is on the list and its ' +
       'card holds a ticket.</p>' +
-      '<p class="mine"><a id="mine">this is my wallet</a></p>' +
-      '<div class="fields" id="ff" style="display:none">' +
-        '<input id="nm" maxlength="24" placeholder="name" value="' + esc(TYPED.name || '') + '">' +
-        '<input id="hd" maxlength="16" placeholder="@handle" value="' + esc(TYPED.handle ? '@' + TYPED.handle : '') + '">' +
-        '<button class="ghost" id="resign">UPDATE</button>' +
-      '</div>';
-    $('#mine').onclick = () => { $('#ff').style.display = 'flex'; $('#mine').parentNode.style.display = 'none'; };
-    $('#resign').onclick = sign;
+      // ⚠️ NOT WHILE SIGNING IS CLOSED. UPDATE posts to /api/claim, which now refuses, so offering
+      // it would be a button that fails: the owner would think their edit was rejected rather than
+      // that the door is shut.
+      (DATA && DATA.claimsOpen === false ? '<p class="mine" style="color:#5f5f6c;" >' +
+        '<span style="font:700 12px/1 var(--mono);letter-spacing:.14em">SIGNING IS CLOSED</span></p>'
+        : '<p class="mine"><a id="mine">this is my wallet</a></p>') +
+      // ⚠️ NOT EVEN HIDDEN. While signing is closed the fields are not emitted at all: a form that
+      // posts to a refusing endpoint has no business existing in the page, hidden or not.
+      (DATA && DATA.claimsOpen === false ? '' :
+        '<div class="fields" id="ff" style="display:none">' +
+          '<input id="nm" maxlength="24" placeholder="name" value="' + esc(TYPED.name || '') + '">' +
+          '<input id="hd" maxlength="16" placeholder="@handle" value="' + esc(TYPED.handle ? '@' + TYPED.handle : '') + '">' +
+          '<button class="ghost" id="resign">UPDATE</button>' +
+        '</div>');
+    if ($('#mine')) $('#mine').onclick = () => { $('#ff').style.display = 'flex'; $('#mine').parentNode.style.display = 'none'; };
+    if ($('#resign')) $('#resign').onclick = sign;
   } else {
     c.innerHTML = '<h3>PUT YOUR NAME ON IT</h3>' +
       "<p>Anyone can read anyone’s wallet, so a name only goes on a card the owner signed for. " +
