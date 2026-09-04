@@ -41,19 +41,20 @@ a{color:inherit}
 .tkbar{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;justify-content:center;
   pointer-events:none;padding:10px 12px}
 .tkbar[hidden]{display:none}
-.tkbar .in{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;justify-content:center;
-  padding:9px 16px;border-radius:999px;border:1px solid rgba(226,59,109,.55);
-  background:rgba(28,8,14,.92);backdrop-filter:blur(8px);
-  box-shadow:0 6px 24px rgba(0,0,0,.5)}
+/* ⚠️ ONE RULE, NOT A RULE PLUS A PATCH. The column layout was bolted on under the original row
+   layout and left align-items:baseline behind it, so the second line shrank to its own width and
+   sat against the left edge while the first stayed centred.
+   ⚠️ AND A FIXED RADIUS. 999px reads as a pill on one line and as a lozenge on two: the ends bow
+   out as the box gets taller, which is the shape gruff saw on the board. */
+.tkbar .in{display:flex;flex-direction:column;align-items:center;gap:5px;
+  padding:10px 20px 11px;border-radius:16px;border:1px solid rgba(226,59,109,.55);
+  background:rgba(28,8,14,.94);backdrop-filter:blur(8px);box-shadow:0 6px 24px rgba(0,0,0,.5)}
 .tkbar .n{font:800 14px/1 var(--mono);letter-spacing:.05em;color:#fff;font-variant-numeric:tabular-nums}
 .tkbar .l{font:800 9.5px/1 var(--mono);letter-spacing:.2em;color:#e88ba4}
 .tkbar .sep{color:#7a3a4c}
 .tkbar .t{color:var(--DEGEN-lit)}
-.tkbar .in{flex-direction:column;gap:4px}
 .tkbar .top{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;justify-content:center}
-/* ⚠️ walletsRead, NOT the cache size: the cache holds 5,000 reference wallets warmed in before
-   anyone arrived, and putting that on the page would read as five thousand visitors. */
-.tkbar .bot{font:700 9px/1 var(--mono);letter-spacing:.16em;color:#9a6a78;text-align:center}
+.tkbar .bot{font:700 9px/1.4 var(--mono);letter-spacing:.16em;color:#9a6a78;text-align:center}
 /* the page needs room under a bar that floats over it */
 body.hastk{padding-top:52px}.wm{background:var(--paper);border-radius:8px;padding:7px 14px 9px;display:inline-block;
   text-decoration:none}   /* it is a link home now, and a link that looks underlined is not a mark */

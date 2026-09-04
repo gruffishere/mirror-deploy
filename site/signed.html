@@ -47,8 +47,22 @@ h1{font:900 clamp(30px,4.6vw,60px)/1 var(--disp);letter-spacing:-.045em;margin:3
 /* ⚠️ third time: an explicit display beats the hidden attribute, so it needs its own rule */
 .filters[hidden]{display:none}
 .filters .row{display:flex;gap:7px;flex-wrap:wrap}
-.filters b{font:800 9.5px/1 var(--mono);letter-spacing:.18em;border-radius:999px;padding:8px 13px;
-  border:1px solid rgba(255,255,255,.14);color:#8a8a96;cursor:pointer;user-select:none}
+/* two rows, two jobs, so they are not the same shape. The sort is a switch and reads as one; the
+   facets are labels and carry their own colour, which is the colour that means that facet
+   everywhere else on this site. */
+.filters b{font:800 9.5px/1 var(--mono);letter-spacing:.18em;padding:8px 13px;cursor:pointer;
+  user-select:none;border:1px solid rgba(255,255,255,.14);color:#8a8a96}
+.filters .row.sort b{border-radius:9px}
+.filters .row.sort b:first-child{border-top-right-radius:0;border-bottom-right-radius:0;
+  border-right:0}
+.filters .row.sort b:last-child{border-top-left-radius:0;border-bottom-left-radius:0}
+.filters .row.sort{gap:0}
+.filters .row.sort b.on{color:#0b0b0e;background:var(--paper);border-color:var(--paper)}
+.filters b i{font-style:normal}
+.filters .row.facet b{border-radius:999px;border-color:currentColor;opacity:.55}
+.filters .row.facet b.on{opacity:1;background:currentColor}
+.filters .row.facet b.on span,.filters .row.facet b.on{color:currentColor}
+.filters .row.facet b.on i{color:#0b0b0e;font-style:normal}
 .filters b:hover{color:#fff;border-color:rgba(255,255,255,.32)}
 .filters b.on{color:#0b0b0e;background:#e9e9ef;border-color:#e9e9ef}
 .filters b .c{opacity:.55;margin-left:5px}
@@ -58,19 +72,20 @@ h1{font:900 clamp(30px,4.6vw,60px)/1 var(--disp);letter-spacing:-.045em;margin:3
 .tkbar{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;justify-content:center;
   pointer-events:none;padding:10px 12px}
 .tkbar[hidden]{display:none}
-.tkbar .in{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;justify-content:center;
-  padding:9px 16px;border-radius:999px;border:1px solid rgba(226,59,109,.55);
-  background:rgba(28,8,14,.92);backdrop-filter:blur(8px);
-  box-shadow:0 6px 24px rgba(0,0,0,.5)}
+/* ⚠️ ONE RULE, NOT A RULE PLUS A PATCH. The column layout was bolted on under the original row
+   layout and left align-items:baseline behind it, so the second line shrank to its own width and
+   sat against the left edge while the first stayed centred.
+   ⚠️ AND A FIXED RADIUS. 999px reads as a pill on one line and as a lozenge on two: the ends bow
+   out as the box gets taller, which is the shape gruff saw on the board. */
+.tkbar .in{display:flex;flex-direction:column;align-items:center;gap:5px;
+  padding:10px 20px 11px;border-radius:16px;border:1px solid rgba(226,59,109,.55);
+  background:rgba(28,8,14,.94);backdrop-filter:blur(8px);box-shadow:0 6px 24px rgba(0,0,0,.5)}
 .tkbar .n{font:800 14px/1 var(--mono);letter-spacing:.05em;color:#fff;font-variant-numeric:tabular-nums}
 .tkbar .l{font:800 9.5px/1 var(--mono);letter-spacing:.2em;color:#e88ba4}
 .tkbar .sep{color:#7a3a4c}
 .tkbar .t{color:var(--DEGEN-lit)}
-.tkbar .in{flex-direction:column;gap:4px}
 .tkbar .top{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;justify-content:center}
-/* ⚠️ walletsRead, NOT the cache size: the cache holds 5,000 reference wallets warmed in before
-   anyone arrived, and putting that on the page would read as five thousand visitors. */
-.tkbar .bot{font:700 9px/1 var(--mono);letter-spacing:.16em;color:#9a6a78;text-align:center}
+.tkbar .bot{font:700 9px/1.4 var(--mono);letter-spacing:.16em;color:#9a6a78;text-align:center}
 /* the page needs room under a bar that floats over it */
 body.hastk{padding-top:52px}
 /* stated on the board too: this is the page people are sent to, and a list nobody can join any
@@ -101,13 +116,13 @@ body.hastk{padding-top:52px}
     <a class="back" href="/">READ A WALLET</a>
   </div>
 
-  <h1>Signed</h1>
+  <h1>Signed Wallets</h1>
   <p class="count" id="count">…</p>
   <p class="closed" id="closed" hidden>SIGNING IS CLOSED &middot; THIS LIST IS SETTLED</p>
 
   <div class="filters" id="filters">
-    <div class="row" id="sorts"></div>
-    <div class="row" id="facets"></div>
+    <div class="row sort" id="sorts"></div>
+    <div class="row facet" id="facets"></div>
   </div>
   <div class="grid" id="grid"></div>
 </div>
@@ -181,11 +196,16 @@ function chips() {
       '<b data-sort="' + k + '"' + (SORT === k ? ' class="on"' : '') + '>' + l + '</b>').join('');
   const counts = {};
   ROWS.forEach(r => { if (r.facet) counts[r.facet] = (counts[r.facet] || 0) + 1; });
+  // ⚠️ the chip carries the facet's own colour, the same one the card and the bars use. currentColor
+  // then drives the border, the text and the filled state from that one value.
+  const chip = (f, label, n, on) =>
+    '<b data-facet="' + f + '"' + (on ? ' class="on"' : '') +
+    (f ? ' style="color:var(--' + f + '-lit)"' : ' style="color:#9a9aa8"') + '>' +
+    '<i>' + label + '<span class="c">' + n + '</span></i></b>';
   document.getElementById('facets').innerHTML =
-    '<b data-facet=""' + (FACET ? '' : ' class="on"') + '>ALL<span class="c">' + ROWS.length + '</span></b>' +
-    Object.keys(counts).sort((a, b) => counts[b] - counts[a]).map(f =>
-      '<b data-facet="' + f + '"' + (FACET === f ? ' class="on"' : '') + '>' + f +
-      '<span class="c">' + counts[f] + '</span></b>').join('');
+    chip('', 'ALL', ROWS.length, !FACET) +
+    Object.keys(counts).sort((a, b) => counts[b] - counts[a])
+      .map(f => chip(f, f, counts[f], FACET === f)).join('');
 }
 document.addEventListener('click', e => {
   const b = e.target.closest && e.target.closest('.filters b');
