@@ -399,7 +399,7 @@ async function tkPoll() {
     const rd = st.walletsRead == null ? 0 : st.walletsRead;
     const q = st.queue == null ? 0 : st.queue;
     document.getElementById("tkB").textContent =
-      rd.toLocaleString('en-US') + ' WALLETS READ' + (q > 0 ? '  ·  ' + q + ' IN QUEUE' : '');
+      rd.toLocaleString('en-US') + ' WALLETS READ  ·  ' + q + ' IN QUEUE';
     tkClosesAt = (st.claimsOpen && st.closesAt) ? st.closesAt : null;
   } catch (e) { }
   tkPaint();

@@ -43,6 +43,15 @@ h1{font:900 clamp(30px,4.6vw,60px)/1 var(--disp);letter-spacing:-.045em;margin:3
 .tile .hd{font:600 12.5px/1 var(--mono);color:#6f6f7c}
 .tile .fc{margin-left:auto;font:800 10px/1 var(--mono);letter-spacing:.14em}
 .empty{color:#6f6f7c;padding:40px 0}
+.filters{margin:0 0 26px;display:flex;flex-direction:column;gap:9px}
+/* ⚠️ third time: an explicit display beats the hidden attribute, so it needs its own rule */
+.filters[hidden]{display:none}
+.filters .row{display:flex;gap:7px;flex-wrap:wrap}
+.filters b{font:800 9.5px/1 var(--mono);letter-spacing:.18em;border-radius:999px;padding:8px 13px;
+  border:1px solid rgba(255,255,255,.14);color:#8a8a96;cursor:pointer;user-select:none}
+.filters b:hover{color:#fff;border-color:rgba(255,255,255,.32)}
+.filters b.on{color:#0b0b0e;background:#e9e9ef;border-color:#e9e9ef}
+.filters b .c{opacity:.55;margin-left:5px}
 /* THE CLOCK, PINNED TO THE TOP OF EVERY PAGE.
    ⚠️ display is set here, so [hidden] must be given a display of its own or the attribute does
    nothing: that is exactly how it stayed on screen showing --:--:-- while signing was closed. */
@@ -96,6 +105,10 @@ body.hastk{padding-top:52px}
   <p class="count" id="count">…</p>
   <p class="closed" id="closed" hidden>SIGNING IS CLOSED &middot; THIS LIST IS SETTLED</p>
 
+  <div class="filters" id="filters">
+    <div class="row" id="sorts"></div>
+    <div class="row" id="facets"></div>
+  </div>
   <div class="grid" id="grid"></div>
 </div>
 <div id="lb"><img alt=""></div>
@@ -128,7 +141,7 @@ async function tkPoll() {
     const rd = st.walletsRead == null ? 0 : st.walletsRead;
     const q = st.queue == null ? 0 : st.queue;
     document.getElementById("tkB").textContent =
-      rd.toLocaleString('en-US') + ' WALLETS READ' + (q > 0 ? '  ·  ' + q + ' IN QUEUE' : '');
+      rd.toLocaleString('en-US') + ' WALLETS READ  ·  ' + q + ' IN QUEUE';
     tkClosesAt = (st.claimsOpen && st.closesAt) ? st.closesAt : null;
   } catch (e) { }
   tkPaint();
@@ -138,6 +151,49 @@ fetch('/api/status').then(r => r.json())
   .then(st => { ARTV = st.artVersion || '0';
                 if (st.claimsOpen === false) document.getElementById('closed').hidden = false; })
   .catch(() => {});
+
+// THE BOARD IS FILTERED IN THE PAGE, not asked for again: every row is already here, and a sort is
+// a comparison, not a request.
+let ROWS = [], SORT = 'new', FACET = '';
+function draw() {
+  let rows = ROWS.slice();
+  if (FACET) rows = rows.filter(r => r.facet === FACET);
+  rows.sort(SORT === 'reads'
+    ? (a, b) => (b.reads || 0) - (a.reads || 0) || (a.t < b.t ? 1 : -1)
+    : (a, b) => (a.t < b.t ? 1 : -1));
+  document.getElementById('count').textContent =
+    rows.length + (rows.length === 1 ? ' WALLET' : ' WALLETS') + (FACET ? ' · ' + FACET : '');
+  document.getElementById('grid').innerHTML = rows.length ? rows.map(r =>
+    '<div class="tile">' +
+      '<img loading="lazy" alt="" data-full="1" data-tries="0" ' +
+        'src="/api/card.png?addr=' + encodeURIComponent(r.addr) + '&v=' + encodeURIComponent(ARTV) + '">' +
+      '<div class="who">' +
+        '<span class="nm">' + esc(r.name || short(r.addr)) + '</span>' +
+        (r.handle ? '<span class="hd">@' + esc(r.handle) + '</span>' : '') +
+        (r.reads > 1 ? '<span class="hd">' + r.reads + '&times;</span>' : '') +
+        (r.facet ? '<span class="fc" style="color:var(--' + r.facet + '-lit)">' + esc(r.facet) + '</span>' : '') +
+      '</div>' +
+    '</div>').join('') : '<p class="empty">Nobody here yet.</p>';
+}
+function chips() {
+  document.getElementById('sorts').innerHTML =
+    [['new', 'NEWEST'], ['reads', 'MOST READ']].map(([k, l]) =>
+      '<b data-sort="' + k + '"' + (SORT === k ? ' class="on"' : '') + '>' + l + '</b>').join('');
+  const counts = {};
+  ROWS.forEach(r => { if (r.facet) counts[r.facet] = (counts[r.facet] || 0) + 1; });
+  document.getElementById('facets').innerHTML =
+    '<b data-facet=""' + (FACET ? '' : ' class="on"') + '>ALL<span class="c">' + ROWS.length + '</span></b>' +
+    Object.keys(counts).sort((a, b) => counts[b] - counts[a]).map(f =>
+      '<b data-facet="' + f + '"' + (FACET === f ? ' class="on"' : '') + '>' + f +
+      '<span class="c">' + counts[f] + '</span></b>').join('');
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('.filters b');
+  if (!b) return;
+  if (b.dataset.sort != null) SORT = b.dataset.sort;
+  if (b.dataset.facet != null) FACET = b.dataset.facet;
+  chips(); draw();
+});
 
 fetch('/api/signed').then(r => r.json()).then(j => {
   // ⚠️ COUNTED FROM THE ROWS ON SCREEN, not from a second endpoint, so the tally and the tiles can
@@ -150,20 +206,14 @@ fetch('/api/signed').then(r => r.json()).then(j => {
     ORDER.filter(f => by[f]).map(f =>
       '<span class="fq" style="color:var(--' + f + '-lit)">' + f + ' ' + by[f] + '</span>').join('');
   if (!j.n) {
+    document.getElementById('filters').hidden = true;
     document.getElementById('grid').outerHTML =
       '<p class="empty">Nobody has signed yet. The first card here will be somebody’s.</p>';
     return;
   }
-  document.getElementById('grid').innerHTML = j.rows.map(r =>
-    '<div class="tile">' +
-      '<img loading="lazy" alt="" data-full="1" data-tries="0" ' +
-        'src="/api/card.png?addr=' + encodeURIComponent(r.addr) + '&v=' + encodeURIComponent(ARTV) + '">' +
-      '<div class="who">' +
-        '<span class="nm">' + esc(r.name || short(r.addr)) + '</span>' +
-        (r.handle ? '<span class="hd">@' + esc(r.handle) + '</span>' : '') +
-        (r.facet ? '<span class="fc" style="color:var(--' + r.facet + '-lit)">' + esc(r.facet) + '</span>' : '') +
-      '</div>' +
-    '</div>').join('');
+  // one place builds the tiles, and the filters feed it
+  ROWS = j.rows || [];
+  chips(); draw();
 }).catch(() => {
   document.getElementById('count').textContent = 'could not load the list';
 });

@@ -135,7 +135,8 @@ function stampOf(a) {
   if (!row) return null;
   const c = CLAIMED.get(a);
   // the version sits in a fixed position, so a card drawn by an older one is recognisable on sight
-  return (row.at || '0').replace(/[^0-9]/g, '').slice(0, 14) + '-' + ART_VERSION +
+  // the badge is part of the picture, so it belongs in the name of the file that holds the picture
+  return (row.at || '0').replace(/[^0-9]/g, '').slice(0, 14) + '-' + ART_VERSION + 'r' + CLAIMS.readsOf(a) +
     (c ? '_' + Buffer.from((c.name || '') + '|' + (c.handle || '')).toString('hex').slice(0, 16) : '');
 }
 
@@ -498,6 +499,7 @@ http.createServer(async (req, res) => {
     if (wait) return json(res, 429, { error: 'too many requests' }, { 'Retry-After': wait });
     const rows = CLAIMS.verifyAll().good
       .map(r => ({ addr: r.addr, name: r.name, handle: r.handle,
+                   reads: CLAIMS.readsOf(r.addr), id: CLAIMS.shortId(r.addr),
                    // shown, but marked: on the board and not in the draw
                    eligible: !CLAIMS.EXCLUDED.has(r.addr),
                    facet: r.facet || (cache.get(r.addr) || {}).profile && cache.get(r.addr).profile.dominant || null,
@@ -645,7 +647,7 @@ http.createServer(async (req, res) => {
       if (!isOwnRenderer(req)) CLAIMS.logRead(addr, { facet: row.profile && row.profile.dominant, cached: true,
                              ens: (row.signals && row.signals.ens) || null });
       return json(res, 200, { ...row, cached: true, resolvedFrom,
-        claimed: CLAIMED.get(addr) || null, claimsOpen: claimsOpen(), id: CLAIMS.shortId(addr),
+        claimed: CLAIMED.get(addr) || null, claimsOpen: claimsOpen(), id: CLAIMS.shortId(addr), reads: CLAIMS.readsOf(addr),
         mirror: extras(row.profile) });
     }
 
@@ -663,7 +665,7 @@ http.createServer(async (req, res) => {
       if (!isOwnRenderer(req)) CLAIMS.logRead(addr, { facet: out.profile && out.profile.dominant, cached: false,
                              ens: (out.signals && out.signals.ens) || null });
       return json(res, 200, { ...out, resolvedFrom, queuedAt: place,
-        claimed: CLAIMED.get(addr) || null, claimsOpen: claimsOpen(), id: CLAIMS.shortId(addr),
+        claimed: CLAIMED.get(addr) || null, claimsOpen: claimsOpen(), id: CLAIMS.shortId(addr), reads: CLAIMS.readsOf(addr),
         mirror: extras(out.profile) });
     } catch (e) {
       return json(res, 500, { error: String(e && e.message || e) });
@@ -756,7 +758,13 @@ async function prerenderTick() {
       if (f && f.n >= PRE_GIVE_UP) preFails.delete(a);      // cooldown over, it gets another chance
       const stamp = stampOf(a);
       if (!stamp) continue;                                   // never read, nothing to draw from
-      if (fs.existsSync(CARDPNG.cachedFile(a, stamp))) continue;
+      // ⛔ IT DRAWS A MISSING CARD, IT DOES NOT CHASE THE COUNT.
+      // The stamp moves every time a wallet is read, so matching on the exact current stamp would
+      // have this loop redrawing the same 242 cards forever, one browser launch at a time, for a
+      // number that the live page already shows correctly without any rendering at all. Any card
+      // for this wallet is enough here; whoever exports one gets today's.
+      if (fs.readdirSync(CARDPNG.OUT).some(f => f.indexOf(a + '_') === 0 &&
+                                               f.indexOf('-' + ART_VERSION) >= 0)) continue;
       try {
         await CARDPNG.cardPng('http://127.0.0.1:' + PORT, a, stamp);
         preDrawn++;

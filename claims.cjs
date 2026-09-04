@@ -305,7 +305,20 @@ const readSet = new Set();
   }
 })();
 const walletsRead = () => readSet.size;
-const noteRead = a => { const x = String(a || '').toLowerCase(); if (x) readSet.add(x); };
+
+// ⚠️ COUNTED FROM LAUNCH, like readSet: the rows before that are our own testing and one address
+// was read 33 times while we were building.
+const readCount = new Map();
+(function loadCounts() {
+  for (const r of readJsonl(READS)) {
+    if (Date.parse(r.t) < LAUNCH_MS) continue;
+    const a = String(r.addr || '').toLowerCase();
+    if (a) readCount.set(a, (readCount.get(a) || 0) + 1);
+  }
+})();
+const readsOf = a => readCount.get(String(a || '').toLowerCase()) || 0;
+const noteRead = a => { const x = String(a || '').toLowerCase(); if (!x) return;
+  readSet.add(x); readCount.set(x, (readCount.get(x) || 0) + 1); };
 
 function readsCsv() {
   const rows = readJsonl(READS).map(r => [r.t, r.addr, r.facet || '', r.cached ? 'cached' : 'fresh']);
@@ -340,5 +353,5 @@ function signedCsv() {
 
 module.exports = { MESSAGE, issueNonce, claim, stats, fcfsCsv, verifyAll, signedLatest, unsign,
                    readsCsv, uniqueReadsCsv, signedCsv,
-                   shortId, addrForId, DIR, walletsRead, noteRead,
+                   shortId, addrForId, DIR, walletsRead, noteRead, readsOf,
                    logRead, cleanText, cleanHandle, EXCLUDED, READS, SIGNED };
