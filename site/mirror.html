@@ -460,15 +460,12 @@ function drawClaim() {
     c.innerHTML = '<h3>PUT YOUR NAME ON IT</h3>' +
       "<p>Anyone can read anyone’s wallet, so a name only goes on a card the owner signed for. " +
       'Signing costs no gas and moves nothing.</p>' +
-      // ⛔ IT PROMISES NOTHING, AND SAYS SO.
-      // The line before this said 'you are on the list either way', which IS a promise: it names a
-      // list and puts the reader on it. gruff is posting that the signature guarantees nothing, and
-      // a page that quietly says otherwise is the contradiction someone screenshots. The reason to
-      // sign here is the one thing that is actually true: it puts your name on your own card.
-      '<p class="deal">Enter your name and X handle and sign with your wallet, and your card gets a ' +
-      '<b>ticket</b>. A ticket to what? Could be something. Could be nothing at all. We are ' +
-      'promising you exactly nothing here: no list, no spot, no guarantee. Sign it because you want ' +
-      'your name on your own card. If it turns into something later, you were already here.</p>' +
+      // ⛔ SHORT, AND IT PROMISES NOTHING.
+      // The long version explained the absence of a promise at length, which is its own kind of
+      // protesting too much. Four sentences say it better: the ticket is real, what it is for is
+      // not stated, and nobody is claiming it is worth anything.
+      '<p class="deal">Sign, and your card gets a <b>ticket</b>. To what? Could be something. ' +
+      'Could be nothing. We are not saying.</p>' +
       '<div class="fields">' +
         '<input id="nm" maxlength="24" placeholder="name">' +
         '<input id="hd" maxlength="16" placeholder="@handle">' +
