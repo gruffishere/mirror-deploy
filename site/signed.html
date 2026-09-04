@@ -57,6 +57,11 @@ h1{font:900 clamp(30px,4.6vw,60px)/1 var(--disp);letter-spacing:-.045em;margin:3
 .tkbar .l{font:800 9.5px/1 var(--mono);letter-spacing:.2em;color:#e88ba4}
 .tkbar .sep{color:#7a3a4c}
 .tkbar .t{color:var(--DEGEN-lit)}
+.tkbar .in{flex-direction:column;gap:4px}
+.tkbar .top{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;justify-content:center}
+/* ⚠️ walletsRead, NOT the cache size: the cache holds 5,000 reference wallets warmed in before
+   anyone arrived, and putting that on the page would read as five thousand visitors. */
+.tkbar .bot{font:700 9px/1 var(--mono);letter-spacing:.16em;color:#9a6a78;text-align:center}
 /* the page needs room under a bar that floats over it */
 body.hastk{padding-top:52px}
 /* stated on the board too: this is the page people are sent to, and a list nobody can join any
@@ -74,9 +79,12 @@ body.hastk{padding-top:52px}
 </style></head><body>
 
 <div class="tkbar" id="tkbar" hidden><div class="in">
-  <span class="n" id="tkN">0</span><span class="l">SIGNED</span>
-  <span class="sep">&middot;</span>
-  <span class="l">CLOSES IN</span><span class="n t" id="tkT">--:--:--</span>
+  <div class="top">
+    <span class="n" id="tkN">0</span><span class="l">SIGNED</span>
+    <span class="sep">&middot;</span>
+    <span class="l">CLOSES IN</span><span class="n t" id="tkT">--:--:--</span>
+  </div>
+  <div class="bot" id="tkB"></div>
 </div></div>
 <div class="wrap">
   <div class="top">
@@ -117,6 +125,10 @@ async function tkPoll() {
   try {
     const st = await (await fetch("/api/status")).json();
     document.getElementById("tkN").textContent = st.signed == null ? "0" : st.signed;
+    const rd = st.walletsRead == null ? 0 : st.walletsRead;
+    const q = st.queue == null ? 0 : st.queue;
+    document.getElementById("tkB").textContent =
+      rd.toLocaleString('en-US') + ' WALLETS READ' + (q > 0 ? '  ·  ' + q + ' IN QUEUE' : '');
     tkClosesAt = (st.claimsOpen && st.closesAt) ? st.closesAt : null;
   } catch (e) { }
   tkPaint();

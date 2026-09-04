@@ -36,8 +36,20 @@ function engine(supply, seed) {
 }
 
 // Returns { svg, cells, grid, tokenId, facet }
+// ⛔ ONE HAND-PICKED PIECE, gruff's call, declared where anyone reading this file will see it.
+// Every other wallet's art is whatever its address draws. This address gets a chosen candidate:
+// adamweitsman.eth, for a launch post. nudge 1961 out of 30,000 searched is Laser eyes, Sealed
+// mouth, black contour on Aurora, measured at 0.1% for the eyes.
+// ⚠️ IT LIVES HERE, in the one function every path goes through, so the page and the rendered card
+// cannot disagree about what this wallet looks like.
+const PINNED = {
+  '0x250dc85178fb6859e9ee02c925d46aab946a55e7': 1961,
+};
+
 function mirrorPiece(addr, facet, opts) {
   opts = opts || {};
+  const pin = PINNED[String(addr).toLowerCase()];
+  if (pin != null && opts.nudge == null) opts = Object.assign({}, opts, { nudge: pin });
   if (!FACETS.includes(facet)) throw new Error('unknown facet ' + facet);
   const E = engine(opts.supply, opts.seed);
   const { G, V7 } = E;
@@ -87,6 +99,11 @@ function pieceScore(traits) {
 
 // heat is 0..1, taken from how far the wallet sits along its own facet
 function bestPiece(addr, facet, heat) {
+  // ⚠️ THE PIN HAS TO BE CAUGHT HERE TOO. Everything that draws a card comes through bestPiece,
+  // and it passes an explicit nudge for every candidate, so the guard inside mirrorPiece (which
+  // only fires when no nudge was given) never saw it and the pinned wallet kept its old art.
+  const pin = PINNED[String(addr).toLowerCase()];
+  if (pin != null) return mirrorPiece(addr, facet, { nudge: pin });
   const h = Math.max(0, Math.min(1, Number(heat) || 0));
   const tries = 1 + Math.round(h * 180);
   let best = null, bestS = -1;

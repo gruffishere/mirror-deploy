@@ -354,10 +354,12 @@ http.createServer(async (req, res) => {
   {
     const seg = u.pathname.slice(1);
     if (seg.length > 0 && seg.length < 12 && [...seg].every(ch => ch >= '0' && ch <= '9')) {
+      // ⚠️ A NUMBER NOBODY RECOGNISES SHOWS THE SITE, NOT A JSON ERROR. A mistyped or made-up link
+      // is a person, and handing them {"error":"no such card"} reads as a broken site rather than
+      // a wrong address. They land on the front page and can type a wallet.
       const hit = CLAIMS.addrForId(seg);
-      if (!hit) return json(res, 404, { error: 'no such card' });
+      if (hit) u.searchParams.set('addr', hit);
       u.pathname = '/';
-      u.searchParams.set('addr', hit);
     }
   }
 
@@ -405,6 +407,7 @@ http.createServer(async (req, res) => {
     return json(res, 200, { cached: cache.size, queue: depth, lanes: LANES, maxQueue: MAX_QUEUE,
                             keys: E.hasKeys(),
                             claimsOpen: claimsOpen(), closesAt: deadlineAt(), signed: CLAIMED.size,
+                            walletsRead: CLAIMS.walletsRead(),
                             turnedAway: turnedAway, artVersion: ART_VERSION, cardsDrawn: preDrawn,
                             cardsGivenUp: [...preFails.values()].filter(x => x.n >= PRE_GIVE_UP &&
                                             Date.now() - x.at < PRE_COOLDOWN).length,

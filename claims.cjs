@@ -114,10 +114,10 @@ const cleanHandle = h => {
 // two are the evidence behind a mint list. Nothing here is ever edited in place.
 const append = (file, row) => fs.appendFile(file, JSON.stringify(row) + '\n', () => {});
 
-const logRead = (addr, meta) => append(READS, {
+const logRead = (addr, meta) => (noteRead(addr), append(READS, {
   t: new Date().toISOString(), addr: addr.toLowerCase(),
   facet: meta && meta.facet || null, cached: !!(meta && meta.cached)
-});
+}));
 
 // ── the claim ─────────────────────────────────────────────────────────────────────────────────────
 function claim(body) {
@@ -273,6 +273,40 @@ function shortId(addr) {
   return n;
 }
 const addrForId = n => byId.get(Number(n)) || null;
+
+// ⛔ EVERY WALLET ALREADY READ NEEDS A NUMBER TOO.
+// Ids started at 1 the moment this shipped, so the 766 wallets read before that had none and every
+// short link anyone tried was a 404. They are assigned here in the order they were FIRST SEEN, so
+// the numbering means something and never moves: run this twice and nothing changes.
+(function backfillIds() {
+  const seen = new Set();
+  let added = 0;
+  for (const r of readJsonl(READS)) {
+    const a = String(r.addr || '').toLowerCase();
+    if (!a || seen.has(a) || byAddr.has(a)) continue;
+    seen.add(a);
+    shortId(a);
+    added++;
+  }
+  if (added) console.log('gave short links to ' + added + ' wallet(s) read before ids existed');
+})();
+// ⚠️ NOT cache.size, WHICH IS A DIFFERENT NUMBER ENTIRELY. The cache holds the 5,000 reference
+// wallets that were pre-warmed in before anyone arrived, so showing it on the page would read as
+// 'five thousand people came' when the true figure is a fraction of that. This counts distinct
+// addresses that were actually looked up, and only from launch onward: everything before that is
+// our own testing.
+const LAUNCH_MS = Date.parse('2026-08-26T23:00:00Z');
+const readSet = new Set();
+(function loadReadSet() {
+  for (const r of readJsonl(READS)) {
+    if (Date.parse(r.t) < LAUNCH_MS) continue;
+    const a = String(r.addr || '').toLowerCase();
+    if (a) readSet.add(a);
+  }
+})();
+const walletsRead = () => readSet.size;
+const noteRead = a => { const x = String(a || '').toLowerCase(); if (x) readSet.add(x); };
+
 function readsCsv() {
   const rows = readJsonl(READS).map(r => [r.t, r.addr, r.facet || '', r.cached ? 'cached' : 'fresh']);
   return { csv: csvOf(['read_at', 'address', 'facet', 'source'], rows), count: rows.length };
@@ -306,5 +340,5 @@ function signedCsv() {
 
 module.exports = { MESSAGE, issueNonce, claim, stats, fcfsCsv, verifyAll, signedLatest, unsign,
                    readsCsv, uniqueReadsCsv, signedCsv,
-                   shortId, addrForId, DIR,
+                   shortId, addrForId, DIR, walletsRead, noteRead,
                    logRead, cleanText, cleanHandle, EXCLUDED, READS, SIGNED };

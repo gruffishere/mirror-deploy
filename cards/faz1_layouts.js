@@ -44,6 +44,16 @@ function plateColour(addr, dom) {
   return 'var(--' + pool[h % pool.length] + '-lit)';
 }
 
+// ⛔ ONE NAMED EXCEPTION, gruff's call, made in the open rather than hidden in the data.
+// adamweitsman.eth resolves to this address, so the NAME is accurate; what the site normally
+// requires is a signature before showing one, and that rule is waived here. The FIRE is not
+// derived from this wallet's volume, which is 0.8 ETH against a 250 threshold. It is set.
+// ⚠️ Anything added to this list is a picture that no longer follows from the reading, so it stays
+// one line long and stays visible.
+const FEATURED = {
+  '0x250dc85178fb6859e9ee02c925d46aab946a55e7': { name: 'Adam Weitsman', fire: 1 },
+};
+
 function view(D, signed, typed, twin, near, rank) {
   const p = D.profile, s = D.signals, dom = p.dominant;
   const t = typed || {};
@@ -63,7 +73,8 @@ function view(D, signed, typed, twin, near, rank) {
     ink: 'var(--' + dom + '-ink)',           // the light-ground twin, unused on this card
     // identity: only a signature earns a name. Anyone can read anyone's wallet, so an unsigned card
     // may never carry a typed name or the page becomes a free impersonation tool.
-    name: signed && t.name ? t.name : (s.ens || short(s.addr)),
+    name: (FEATURED[String(s.addr).toLowerCase()] || {}).name ||
+          (signed && t.name ? t.name : (s.ens || short(s.addr))),
     handle: signed && t.handle ? '@' + t.handle : null,
     sub: signed ? (s.ens || short(s.addr)) : short(s.addr),
     signed: signed,
@@ -138,7 +149,10 @@ function highlights(v, n) {
 // the frozen 5,000: 1,000 Ξ is reached by 6.74% and 50,000 Ξ by 0.38%.
 // ⚠️ LOG SCALE. Volume is heavy tailed, so a linear ramp would leave everyone between 1,000 and
 // 40,000 looking identical and only vitalik alight.
-const FIRE_MIN = 1000, FIRE_MAX = 50000;
+// ⚠️ 250, NOT 1000. Measured across the first 60 signed wallets: at 1000 ETH not one of them lit,
+// so the effect had never been seen by anybody. At 250 exactly one does, which keeps it rare and
+// makes it real. Median volume among signers is 1 ETH and the top 5% is 101.
+const FIRE_MIN = 250, FIRE_MAX = 50000;
 function fireHeat(volumeEth) {
   const v = Number(volumeEth) || 0;
   if (v < FIRE_MIN) return 0;
@@ -428,7 +442,10 @@ function L2b(v) {
 
   // ⚠️ HERE, and nowhere else: in front of the blurred art cloud and behind every other element.
   // Placed by DOM order rather than z-index, so nothing else on the card has to know it exists.
-  fireLayer(v.s.addr, fireHeat(v.s.volumeEth)) +
+  // the featured card gets its fire set rather than measured, see FEATURED above
+  fireLayer(v.s.addr, (FEATURED[String(v.s.addr).toLowerCase()] || {}).fire != null
+    ? FEATURED[String(v.s.addr).toLowerCase()].fire
+    : fireHeat(v.s.volumeEth)) +
 
   '<div class="abs" style="left:4cqw;top:3cqw">' +
     '<div class="m" style="font-size:1.15cqw;color:var(--dim);display:flex;align-items:baseline;gap:.6cqw">' +
