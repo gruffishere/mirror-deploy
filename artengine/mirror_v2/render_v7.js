@@ -134,6 +134,14 @@
   // tag an earlier layer left there. Without this a sweep tagged on the face keeps animating
   // a cell that now shows an eye, a mouth or a trait piece — which is exactly the "the light
   // runs across my cigar / visor / bubblegum / crying eyes" problem. One rule, all of it.
+  // ⛔ FEATURE CELLS NO SHADOW MAY TOUCH. The PnL cracks (Degen Rekt, OG patina) and the splat flood are
+  // painted INSIDE the face loop, so to every later painter they look like plain face and an eye socket
+  // darkens them like any cheek. gruff caught the result on #5890: the red bleeding blocks next to a Heart
+  // eye sat dark and still while the rest of the crack pulsed.
+  // ⚠ Filled in both still and animate mode on purpose. Gate it on TAG and the two renders would place
+  //   the shadow differently, which is a far worse bug than the one being fixed.
+  let PROT = null;
+
   function stamp(c, r, col) {
     if (!TAG || !inb(c, r)) return;
     const i = idx(c, r);
@@ -179,13 +187,56 @@
   // This is the twin of that contract writer: a plain RGB write with the tag cleared. The COLOUR is
   // byte-identical to the eight copies it replaces (same hex/rgb parse, same `|0` truncation, same string
   // form), and stamp() is inert with V7.animate false, so no static output and no fingerprint can move.
+  // ⛔ THERE IS NO "BED" HERE ANY MORE, AND THAT IS A RULE RATHER THAN AN OMISSION.
+  // On 2026-08-26 I added one: before drawing an eye it repainted the cells around it with skin tone, to
+  // stop the face's own cheek and nose shading from reading as a second broken eye next to a thin Sleepy
+  // line. It worked, and it was the wrong thing to do. gruff: "gözün dışındaki hücreler niye boyanıyor?
+  // sadece gözü istiyorum, göz dışında bir şeyi boyama."
+  // He is right on the principle. An eye painter that repaints the FACE is no longer drawing an eye, it is
+  // quietly editing the portrait, and every other trait would have equal claim to do the same. If the face's
+  // shading beside an eye is a problem, it is a problem with the FACE and gets solved there, in the open.
+  // ⇒ These painters write their own cells and nothing else.
+  // ⛔ ON A LIGHT FACE NO EYE DRAWS A SOCKET SHADOW — ONE RULE, ONE PLACE.
+  // gruff, 2026-08-28: "collector lightta hiçbir gözün gölgesi olmasın." The rule already existed, but only
+  // inside paintIrisBlocks and paintWink, so a Calm, an X, a Laser, an icon eye or an eye PIECE still dug a
+  // socket on a face too pale to hold one, and the recess read as dirt under the eye rather than depth.
+  // Written once here and called from every eye painter, so the set cannot drift the way the field
+  // exemptions did.
+  // ⚠️ WHAT THIS DOES AND DOES NOT REACH. It keys on the VEIL, and only GHOST is ever veiled — no real
+  // Collector, Builder, Degen, Newbie, OG or Whale token carries one (measured over 3000 ids). So on chain
+  // this changes the pale Ghosts and nothing else; on the review lab, where the veil can be forced onto any
+  // facet, it changes whatever is being looked at under Light. If the intent was "pale-looking faces in
+  // general", this is the wrong trigger and the predicate is the only line that needs to move.
+  // ⛔ NO EYE OR MOUTH SHADOW ON GHOST HEAVY (0.5) OR LIGHT (0.28). 2026-08-29 (user).
+  // On a face that is already half or more dissolved into the background, a recess stops reading as depth
+  // and starts reading as a hole punched through the ghost. Shadow (1.0) is solid and keeps its full
+  // construction. This touches ONLY shadow: veil_opacity values and the Veil trait itself are untouched.
+  // ⚠️ Renamed from `lightFace`, which was accurate at 0.3 and became a lie at 0.5 - it no longer means
+  // 'the Light veil'. A predicate whose name says the wrong thing is how the next reader gets it wrong.
+  const noFaceShadow = p => (p.veil_opacity != null && p.veil_opacity <= 0.5);
   function recess(g, c, r, f) {
     if (!inb(c, r)) return;
+    if (PROT && PROT.has(idx(c, r))) return;   // a crack or splat cell: another feature owns it, leave it alone
+    // ⛔ HALF STRENGTH. The shadow used to multiply the cell by f directly, and multiplying compresses
+    //    LOCAL CONTRAST by exactly the same factor it dims. Measured on #4 (BUILDER, Ember), a facet whose
+    //    face runs 240 next to 4 in one row: the recessed band came out at brightness sd 61 against the
+    //    untouched face at 88. Not darker so much as FLATTER - a smooth patch in the middle of a textured
+    //    face, which is what gruff kept reading as washed out.
+    // ⇒ Halve the distance to 1 instead of changing every call site, so the socket, the deep socket and
+    //   the icon shadow all keep their relative weights. #ffd84d used to land on 171; it lands on 193 now.
+    f = 1 - (1 - f) * 0.5;
     const i = idx(c, r), s = '' + g[i];
     const rc = (s[0] === '#')
       ? [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16), parseInt(s.slice(5, 7), 16)]
       : (m => [+m[0], +m[1], +m[2]])(s.match(/\d+/g) || [0, 0, 0]);
     g[i] = 'rgb(' + ((rc[0] * f) | 0) + ',' + ((rc[1] * f) | 0) + ',' + ((rc[2] * f) | 0) + ')';
+    // ⛔ AND THE TAG IS CLEARED. On 2026-08-29 I deleted this line to get the bleeding blocks beside a
+    //    Heart eye moving again, and it was the wrong lever. The comment above states why it exists, and
+    //    it is also what keeps this side in step with the contract, which zeroes the tag byte when it
+    //    darkens through GR.setCell - the last 2 failures of anim_e2e_parity were exactly this.
+    // ⇒ The bleeding is fixed at its SOURCE instead: see PROT, which keeps the shadow off those cells
+    //   entirely, so they never need the tag back. Narrow beats broad - the broad version also set two
+    //   owner blocks flashing on #5890, which is how gruff found it.
     if (TAG) { TAG[i] = 0; OVR[i] = null; }
   }
 
@@ -297,7 +348,7 @@
     return function (x, y) {
       let b = 0, kind = 'fg';
       let eyeDx = 0, eyeDy = 0, eyeRR = 0, eyeSide = 0;
-      let mouthT = false, mouthD = false, mouthU = 0;
+      let mouthT = false, mouthD = false, mouthU = 0, mouthS = false;   // mouthS: this cell is under the mouth shadow (see the floor in the return)
       const dxS = x - CX, dyS = y - CY, rS = Math.sqrt(dxS * dxS + dyS * dyS);
       const inSkull = rS < R, inJaw = pointInPoly(x, y, jawPoly), inFace = inSkull || inJaw;
       if (!inFace) return { b: 0, kind };
@@ -306,9 +357,26 @@
       const dER = Math.hypot(x - anchors.eyeR[0], y - anchors.eyeR[1]);
       const eyeReach = 38 + p.eye_size_extra * 12;
       if (!p.eye_piece && !p.combo_piece) {   // suppress the face's own eyes when a NEW eye trait piece (or combo mask) replaces them
-      const _closed = p.eye_style === 'closed', _calm = p.eye_calm || p.eye_x || p.eye_laser;   // CLOSED: lid line only. CALM/X/LASER: explicit blocks/cross/square. All suppress the field socket.
-      if (dEL < eyeReach) { const t = 1 - dEL / eyeReach; if (!_closed && !_calm) b -= 0.85 * t; if (t > 0.15 && !_closed && !_calm) eyeRR = eyeReach; if (t > 0.45 && !_calm && !_closed) { eyeDx = x - anchors.eyeL[0]; eyeDy = y - anchors.eyeL[1]; eyeSide = -1; if (t > 0.6) kind = 'eye'; } }
-      if (dER < eyeReach) { const t = 1 - dER / eyeReach; if (!_closed && !_calm) b -= 0.85 * t; if (t > 0.15 && !_closed && !_calm) eyeRR = eyeReach; if (t > 0.45 && !_calm && !_closed) { eyeDx = x - anchors.eyeR[0]; eyeDy = y - anchors.eyeR[1]; eyeSide = 1; if (t > 0.6) kind = 'eye'; } }
+      // ⛔⛔ THE ROOT OF THE EYE ARGUMENT, AND THE MECHANISM WAS ALREADY HERE.
+      // The field does three things to the FACE under an eye: it darkens it by up to 85% (the socket), it
+      // marks a wide outer band so `cellFill` can "poke a few stray blocks out" for an organic look, and
+      // further down it forces those cells to level 90 — a dark palette entry. All three are right for an
+      // eye the FIELD draws, and all three are wrong for one an explicit painter draws: the painter covers
+      // its own cells and the rest of that hollow stays on the portrait, reading as a second, broken eye.
+      // That is what gruff kept seeing and naming exactly: "göz olmaya çalışan bloklar".
+      // ⚠️ AND IT WAS SOLVED HERE BEFORE, FOR CLOSED AND CALM/X/LASER — the two eyes that got explicit
+      // painters first. Every eye that got one afterwards (the irises, ember, glow, wide, void, sleepy,
+      // hetero, wink) was never added to the exemption, so each one inherited the fault. This is not a new
+      // idea, it is the existing rule finally applied to the whole set.
+      // ⇒ `_own` is derived, not typed: an eye that has a fill or is a wink, and is not mask/piece driven
+      //   and not one of the icon styles, is exactly the set the explicit painters claim in irisBlockOwned.
+      const _closed = p.eye_style === 'closed';
+      const _calm = p.eye_calm || p.eye_x || p.eye_laser;   // CALM/X/LASER: explicit blocks/cross/square
+      const _own = !p.eye_piece && !p.combo_piece && !p.eye_mask && !_calm && !_closed
+        && !(p.eye_style === 'star' || p.eye_style === 'heart' || p.eye_style === 'dollar')   // SPIRAL LEFT THIS LIST 2026-08-28: paintSpiral draws its own socket now, so the field must stand down for it like it does for Calm and the irises
+        && !!(p.eye_fill_color || p.eye_style === 'wink');
+      if (dEL < eyeReach) { const t = 1 - dEL / eyeReach; if (!_closed && !_calm && !_own) b -= 0.85 * t; if (t > 0.15 && !_closed && !_calm && !_own) eyeRR = eyeReach; if (t > 0.45 && !_calm && !_closed && !_own) { eyeDx = x - anchors.eyeL[0]; eyeDy = y - anchors.eyeL[1]; eyeSide = -1; if (t > 0.6) kind = 'eye'; } }
+      if (dER < eyeReach) { const t = 1 - dER / eyeReach; if (!_closed && !_calm && !_own) b -= 0.85 * t; if (t > 0.15 && !_closed && !_calm && !_own) eyeRR = eyeReach; if (t > 0.45 && !_calm && !_closed && !_own) { eyeDx = x - anchors.eyeR[0]; eyeDy = y - anchors.eyeR[1]; eyeSide = 1; if (t > 0.6) kind = 'eye'; } }
       }
       const mst = p.mouth_style || null;
       if (!mst) {
@@ -325,7 +393,19 @@
         const toothHit = w => Math.abs(((mdx % toothPer) + toothPer) % toothPer) < toothPer * w;
         const deep = ((mst === 'open' || mst === 'vomit' || mst === 'feral' || mst === 'grit' || mst === 'seal' || (p.mouth_open_band || 0) > 0) ? 0.62 : 0.45) * (p.mouth_shadow != null ? p.mouth_shadow : 1);
         const dShadow = Math.hypot(mdx / (mw * 1.25), mdy / Math.max(26, hThin * 2.3));
-        if (dShadow < 1) b -= deep * (1 - dShadow);
+        // ⛔ THE MOUTH SHADOW ATE THROUGH THE HEAD TOO, in exactly the way the eye socket did. Only the three
+        // mouths the FIELD draws reach this line (Open, Sealed, Rainbow Vomit); the other fourteen carry a
+        // `mouth_shape` and are skipped by the branch condition above — measured by deleting this line in a
+        // copy: those fourteen render byte-identical, so there is no shadow under them and never was.
+        // For these three, measured against a no-mouth control: Open 1.42 background cells per render,
+        // Sealed 0.46, Rainbow Vomit 0.22, and 41 of Open's 249 came out LIGHTER than the face — Ghost,
+        // whose background is #f4f4f2, so the chin had a white gap in it.
+        // ⇒ Flag the cell and floor it in the return, the same rule the eyes got: the mouth darkens the
+        //   face, it never deletes it.
+        // ⛔ ...and the same rule for the mouth. This gate did not exist before, so Ghost LIGHT rendered a
+        // shadowed mouth under shadow-free eyes: the two halves of one face disagreeing. Only Open, Sealed
+        // and Rainbow Vomit ever reach this line; the other fourteen mouths carry a `mouth_shape`.
+        if (dShadow < 1 && !noFaceShadow(p)) { b -= deep * (1 - dShadow); mouthS = true; }
         if (mst === 'vomit') { const sh = bsM * 2.0; if (Math.abs(mdx) < sh && Math.abs(mdy) < Math.max(hThin * 1.3, p.mouth_open || 14)) mouthD = true; }
         else if (mst === 'open') { const orad = p.mouth_open || 22; if (Math.hypot(mdx, mdy * 1.15) < Math.max(orad, hThin)) mouthD = true; }
         else if (mst === 'seal') { if (Math.abs(mdx) <= mw && Math.abs(mdy) < hThin) mouthD = true; else if (Math.abs(mdx) <= mw && toothHit(0.3) && Math.abs(mdy) < hThin * 1.9) mouthT = true; }   // ONLY open/seal/vomit reach the field mouth (all other mouths have a shape -> paintMouth). Dead grit/feral/fangs/tongue/tool/cigar/kiss/zipper/drool branches removed.
@@ -365,10 +445,31 @@
         for (const [ex, ey, side] of [[anchors.eyeL[0], anchors.eyeL[1], -1], [anchors.eyeR[0], anchors.eyeR[1], 1]]) {
           if (!_snapCell(x, y, ex, ey, _gbs)) continue;
           if (banditOn && p.eye_mask === 'bandit') maskEye = true;
-          else if (!p.eye_piece && !p.combo_piece && kind !== 'eye' && (p.eye_fill_color || p.eye_style)) { kind = 'eye'; eyeDx = 0; eyeDy = 0; eyeRR = eyeReach; eyeSide = side; }   // no in-face eye under a piece
+          // ⛔ CLOSED IS EXEMPT EVERYWHERE ELSE AND WAS NOT EXEMPT HERE. All three socket guards above test
+          // `_closed`; this branch tested only the `_own` predicate, and CLOSED is deliberately not _own
+          // (it has its own painter, paintClosedEyes). So it fell straight through, `kind` was forced onto
+          // the anchor cell, and faceCellColor has nothing to draw for style 'closed' — it returned null,
+          // which does not mean "dark", it means DELETE THE CELL. Measured 2026-08-28: one BACKGROUND cell
+          // punched directly above each lid bar, on 30 of 42 renders. A shut eye with a hole in it reads as
+          // an open pupil, which is exactly the "something is still drawing an eye there" gruff kept naming.
+          // ⚠️ Only CLOSED reaches this branch wrongly. calm/x/laser and the masks carry neither a fill nor
+          // a style, so `(p.eye_fill_color || p.eye_style)` already keeps them out, and the icon eyes
+          // (star/heart/dollar/spiral) keep this socket ON PURPOSE. Measured blast radius of this one word:
+          // 25 eye traits x 7 facets x 3 poses re-rendered, and Closed is the ONLY picture that moves.
+          else if (p.eye_style !== 'closed' && !(!p.eye_piece && !p.combo_piece && !p.eye_mask && !(p.eye_calm || p.eye_x || p.eye_laser) && p.eye_style !== 'closed' && !(p.eye_style === 'star' || p.eye_style === 'heart' || p.eye_style === 'dollar') && !!(p.eye_fill_color || p.eye_style === 'wink')) && !p.eye_piece && !p.combo_piece && kind !== 'eye' && (p.eye_fill_color || p.eye_style)) { kind = 'eye'; eyeDx = 0; eyeDy = 0; eyeRR = eyeReach; eyeSide = side; }   // no in-face eye under a piece
         }
       }
-      return { b: Math.max(0, Math.min(1, b)), kind, eyeDx, eyeDy, eyeRR, eyeSide, eyeLX: eyeLightX, eyeLY: eyeLightY, maskBand, maskEye, scanBar, mouthT, mouthD, mouthU };
+      // ⛔ THE EYE SOCKET DARKENS THE FACE. IT NEVER DELETES IT. (2026-08-28)
+      // The socket subtracts up to 0.85, and `faceCellColor` drops any cell under 0.15 — so on the eyes the
+      // field still draws (Spiral, the icon eyes, the masks) the middle of the socket fell straight through
+      // the head and the BACKGROUND showed through it. Measured on Spiral: 9.74 such cells per render,
+      // swinging 0 to 14 with the pose, uneven left-to-right in 26 of 42. On GHOST, whose background is
+      // #f4f4f2, the "dark socket" was a cluster of WHITE holes.
+      // ⇒ A cell the field claimed for an eye is floored just above the drop threshold. The socket still
+      //   goes as dark as the face can go; it just stops cutting through it.
+      // ⚠️ This changes nothing on dark-background facets, where a hole and the darkest face tone look
+      //   nearly the same — which is exactly why it survived months of looking at pictures.
+      return { b: Math.max((eyeRR || kind === 'eye' || mouthS) ? 0.16 : 0, Math.min(1, b)), kind, eyeDx, eyeDy, eyeRR, eyeSide, eyeLX: eyeLightX, eyeLY: eyeLightY, maskBand, maskEye, scanBar, mouthT, mouthD, mouthU };
     };
   }
 
@@ -388,27 +489,54 @@
     if (res.maskEye) return shadeHex(p.eye_mask_color || '#ff2a2a', (hashNoise(gx, gy, p.seed + 91) - 0.5) * 0.3);
     if (res.maskBand) return shadeHex(p.eye_mask_band || '#121212', (hashNoise(gx, gy, p.seed + 71) - 0.5) * 0.5 + Math.max(0, res.b - 0.5) * 0.3);
     if (res.kind === 'eye') {
+      // ⛔ `undefined`, NOT `null` — AND THE DIFFERENCE PUNCHED A HOLE IN EVERY FACE.
+      // This function answers with three things, and I used the wrong one. `undefined` means "not my cell,
+      // carry on and paint the face here"; `null` means "this IS an eye cell and nothing goes in it", which
+      // `faceCellColor` honours by leaving the cell EMPTY — so the background shows through the head.
+      // Returning null while standing the field down therefore cut an eye-shaped hole out of the face, and
+      // the explicit painter then dropped a couple of cells into the middle of it. gruff saw it immediately
+      // on Sleepy, where the line is one cell tall and the hole around it is not: "tek çizgi sleepy
+      // yapmışsın, senlik sorun yok, ama bir şey yine oraya göz boşluğu çizmeye çalışıyor."
+      // ⇒ Stand down with `undefined`. The face paints normally, and the explicit blocks paint over it.
+      if (irisBlockOwned(p)) return undefined;
       const er = res.eyeRR || 50, dxe = res.eyeDx, dye = res.eyeDy, style = p.eye_style;
       let fillCol = (style === 'hetero') ? (res.eyeSide > 0 ? (p.eye_fill2_color || p.eye_fill_color) : p.eye_fill_color) : p.eye_fill_color;
+      // ⛔ 2026-08-26 — WINK LEFT THE FIELD ENTIRELY. `paintWink` owns it now, so this function must draw
+      // NOTHING for it or the explicit blocks would sit on top of a field ghost of the same eye.
+      // WHY IT MOVED, in gruff's words: "bazı pozda sağ göz yok, sol göz var, bazı pozda iki göz de dolu —
+      // e o zaman wink olmuyor bu." He is right, and the cause is structural rather than cosmetic. A field
+      // eye decides each cell from `nd/irisEdge` geometry, and at 35x35 an eye is about two cells wide, so
+      // half a cell of yaw or pitch changes how many cells clear the threshold: 1 here, 3 there, and the
+      // ones near the edge come out part-shaded, which is the "blurry, like a zoomed low-res photo" he
+      // described. Laser and Calm never do this because they paint FIXED cells at a rounded anchor.
+      // ⇒ The eyes he listed — sleepy, the four irises, ember, glow, wide, wink, void, heterochromia — are
+      //   EXACTLY the styles still drawn by this field. That list was made by eye and it matches the code
+      //   boundary line for line. Wink is the first to move; the rest follow the same way.
+      if (style === 'wink') return undefined;   // `undefined` = paint the face here; `null` would cut a hole
       if (style && style !== 'hetero') {
-        const winkIris = (style === 'wink' && res.eyeSide < 0);
-        if (!winkIris) {
+        {
           const nu = dxe / er / 0.4, nv = dye / er / 0.4, r = Math.hypot(nu, nv), ang = Math.atan2(nv, nu);
           const sc = p.eye_fill_color || '#eef2f8'; let on = false;
           if (style === 'wink') on = (nv > 0.02 && nv < 0.24) && Math.abs(nu) < 1.0;   // wink's shut-eye line (CLOSED itself -> simple explicit bars in paintClosedEyes)
           else if (style === 'sleepy') on = (nv > -0.06 && nv < 0.44) && Math.abs(nu) < (nv < 0.14 ? 1.0 : 0.66);   // droopy half-lid (heavy top, tapered) -> distinct sleepy squint
           // spiral: field draws ONLY the dark socket (depth, like Iris Blue); the 4 white spiral blocks are explicit (paintSpiral)
           // star/heart/dollar are now drawn as crisp block ICONS (paintEyeIcons) -> socket only here
-          if (!on) return null;
+          // `undefined` = "not my cell, paint the face here". `null` would mean "this IS an eye cell and
+          // nothing goes in it", which leaves the cell EMPTY and cuts a hole through the head. The shaped
+          // eyes only draw a few cells; every other cell of their socket used to take that second meaning.
+          if (!on) return undefined;
           return (p.veil_opacity != null && p.veil_opacity < 1) ? _eyeToneOf(p)(gx, gy) : shadeHex(sc, (hashNoise(gx, gy, p.seed + 131) - 0.5) * 0.18);   // veiled face -> crisp facet tone (matches the mouth); other facets unchanged
         }
       }
-      if (!fillCol) return null;
+      if (!fillCol) return undefined;   // no colour to put in this eye cell -> stand down and let the face paint it (null would delete it)
       const nd = Math.hypot(dxe, dye) / er;
       const fillFrac = Math.max(0.5, Math.min(1, 0.5 + (bs - 14) * 0.05));
       const irisEdge = 0.4 * fillFrac;
       if (nd > irisEdge) return null;
       if (nd > irisEdge * 0.78 && hashNoise(gx, gy, p.seed + 313) < 0.40) return null;
+      // (A veiled-wink colour override lived here on 2026-08-26 and was REPLACED the same day by
+      //  `paintWink`. It fixed the colour but not the cause: the cell COUNT still moved with the pose.
+      //  Deleted rather than left dormant, so nobody has to work out later which of the two is live.)
       if (p.eye_pupil_color && irisEdge * er >= bs * 1.4 && nd < irisEdge * 0.4) return (p.veil_opacity != null && p.veil_opacity < 1) ? _eyeToneOf(p)(gx, gy) : p.eye_pupil_color;   // veiled face -> crisp facet-tone pupil (Glow etc. no longer wash out)
       const contrast = Math.max(0.65, Math.min(1, (bs - 6) / 14));
       const ndot = Math.max(-1, Math.min(1, (dxe * res.eyeLX + dye * res.eyeLY) / er / 0.4));
@@ -631,6 +759,12 @@
       let f = faceCellColor(res, gx, gy, p, bs, crackMap, splatMap);
       let _acc = false;
       if (f !== null && accentMap && accentMap.has(gx * 10000 + gy) && res.kind !== 'eye' && !res.maskEye && !res.maskBand && !res.mouthD && !res.mouthT) { f = accentMap.get(gx * 10000 + gy); _acc = true; }
+      // ⚠ !_acc MATTERS. A splat cell can also be an owner block, and when it is, the ACCENT above has
+      //   already overwritten its colour - so it is an owner block that merely happens to sit under splat.
+      //   gruff spotted the one on #5890 the moment it started flashing: "tek sorun 2 owner block da
+      //   animasyona katilmis". Protect only cells the crack/splat actually OWNS.
+      if (f !== null && !_acc && ((crackMap && crackMap.has(gx * 10000 + gy)) || (splatMap && splatMap.has(gx * 10000 + gy))))
+        PROT.add(sr * V7.GRID + sc);      // crack / splat: a feature, not face - recess() steps over it
       if (f !== null) { const _feat = (res.kind === 'eye' || res.eyeRR || res.maskEye || res.maskBand || res.mouthD || res.mouthT); if (veil < 1 && !_feat) f = blendOverBg(f, p.bg, veil); g[idx(sc, sr)] = f;   // GHOST: fade the face but keep the whole eye region + mouth FULL opacity (they pierce through the veil)
         // ANIMATION TAGS — inside the face the layer is not a painter but a per-cell KIND,
         // so tag here where that kind is still known. Inert unless V7.animate is on.
@@ -1235,6 +1369,12 @@
       halo_rainbow: !!params.halo_rainbow, halo_rot: params.halo_rot || 0, halo_op_mode: params.halo_op_mode || null, halo_col_mode: params.halo_col_mode || null,
       halo_palette: params.halo_palette || null,   // halo_shape + halo_crown_density/reach dropped 2026-07-29: the crown halo is retired, nothing reads them here.
       eye_fill_color: params.eye_fill_color || null, eye_fill2_color: params.eye_fill2_color || null, eye_style: params.eye_style || null, eye_calm: params.eye_calm || false, eye_x: params.eye_x || false, eye_laser: params.eye_laser || false, eye_pupil_color: params.eye_pupil_color || null, eye_mask: params.eye_mask || null, eye_mask_color: params.eye_mask_color || null, eye_mask_band: params.eye_mask_band || null,
+      // ⚠️ LAB ONLY, and it must stay that way. `_labIrisVariant` forces the iris drawing variant so a lab
+      // can show ONE token both ways side by side. Nothing in facets_gen ever sets it, so every real token
+      // still reads its variant from its own hash and the output is byte-identical. It lives here because
+      // defaultsFor is a WHITELIST: a param that is not listed is silently dropped, and a "why is my flag
+      // being ignored" hunt has already been paid for once. ⛔ Do NOT port it to Solidity.
+      _labIrisVariant: (params._labIrisVariant != null) ? params._labIrisVariant : null,
       face_palette: params.face_palette || null, face_recolor: params.face_recolor || null, face_ramp: params.face_ramp || null, face_bg: params.face_bg || null, face_disperse: (params.face_disperse != null) ? params.face_disperse : null,
       ghost_outline_pal: params.ghost_outline_pal || null, ghost_outline_mode: params.ghost_outline_mode || null, ghost_outline_op: params.ghost_outline_op || null, ghost_outline_opacity: (params.ghost_outline_opacity != null) ? params.ghost_outline_opacity : null, ghost_outline_rot: params.ghost_outline_rot || 0,
       _no_bg: params._no_bg || false, gild_level: params.gild_level || 0, gild_min: (params.gild_min != null) ? params.gild_min : null,
@@ -1351,7 +1491,7 @@
     const _bg = hx(p.bg || '#0a0a1e'), _fg = hx(p.fg || '#888888'), _base = (_bg[0] + _bg[1] + _bg[2] < _fg[0] + _fg[1] + _fg[2]) ? _bg : _fg;   // facet dark tone
     const fdark = (c, r) => { const n = (((c * 7 + r * 13) % 5) - 2) * 0.03, f = Math.max(0.09, 0.3 + n); return 'rgb(' + ((_base[0] * f) | 0) + ',' + ((_base[1] * f) | 0) + ',' + ((_base[2] * f) | 0) + ')'; };
     [anchors.eyeL, anchors.eyeR].forEach(a => { const ecx = Math.round(a[0] / CE), ecy = Math.round(a[1] / CE);
-      for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) { const c = ecx + dc, r = ecy + dr; if (c < 0 || c >= V7.GRID || r < 0 || r >= V7.GRID) continue; const cur = g[idx(c, r)]; if (!cur) continue; recess(g, c, r, st === 'dollar' ? 0.62 : 0.90); }   // DEPTH recess behind the icon (Dollar needs it — it blends into Newbie's greens). 2026-07-25 (user): heart + star shadow cut way back (0.90 = barely there).
+      if (!noFaceShadow(p)) for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) { const c = ecx + dc, r = ecy + dr; if (c < 0 || c >= V7.GRID || r < 0 || r >= V7.GRID) continue; const cur = g[idx(c, r)]; if (!cur) continue; recess(g, c, r, st === 'dollar' ? 0.62 : 0.90); }   // DEPTH recess behind the icon (Dollar needs it — it blends into Newbie's greens). 2026-07-25 (user): heart + star shadow cut way back (0.90 = barely there).
       shp.forEach(t => { const c = ecx + t[0], r = ecy + t[1], v = t[2] === 'FDARK' ? fdark(c, r) : (t[2] || shadeHex(col, -t[1] * 0.06)); setCell(g, c, r, v); }); });
   }
   // 2026-08-03 (user): BASELINE LIFT. Every shape was authored against the same anchor row but with its own dr
@@ -1437,8 +1577,348 @@
     const BLOCK = [[-1, -2], [0, -2], [-1, -1], [0, -1]];   // 2x2 iris block (studio coords: cols 16-17 / 23-24, rows 19-20)
     const RECESS = [[-2, -2], [-2, -1], [1, -2], [1, -1], [-1, 0], [0, 0]];   // socket ring around the block (left, right, bottom) -> inset depth
     [anchors.eyeL, anchors.eyeR].forEach(a => { const ecx = Math.round(a[0] / CE), ecy = Math.round(a[1] / CE);
-      RECESS.forEach(([dc, dr]) => { const c = ecx + dc, r = ecy + dr; if (c < 0 || c >= V7.GRID || r < 0 || r >= V7.GRID) return; const cur = g[idx(c, r)]; if (!cur) return; recess(g, c, r, 0.8); });
+      if (!noFaceShadow(p)) RECESS.forEach(([dc, dr]) => { const c = ecx + dc, r = ecy + dr; if (c < 0 || c >= V7.GRID || r < 0 || r >= V7.GRID) return; const cur = g[idx(c, r)]; if (!cur) return; recess(g, c, r, 0.8); });
       BLOCK.forEach(([dc, dr]) => setCell(g, ecx + dc, ecy + dr, tone(ecx + dc, ecy + dr))); });
+  }
+  // ⛔ WHICH EYES THE EXPLICIT BLOCK PAINTER OWNS — ONE PREDICATE, READ BY BOTH SIDES.
+  // The field (`eyeCellColor`) asks it in order to stand down, and `paintIrisBlocks` asks it in order to
+  // fire. Two separate lists would drift and the eye would be drawn twice or not at all; this cannot.
+  // The set is exactly the eyes gruff listed on 2026-08-26 as blurry and pose-unstable: the four irises,
+  // Ember, Glow, Wide, Void, Sleepy and Heterochromia. Everything already explicit (Calm, Laser, X, Closed,
+  // Spiral, the icon eyes), everything mask-based (Visor, Bandit, Vault), every trait PIECE, and the
+  // brow-only expressions (Sad, Skeptical, which carry no fill) stay exactly where they are.
+  function irisBlockOwned(p) {
+    if (p.eye_piece || p.combo_piece || p.eye_mask) return false;
+    if (p.eye_calm || p.eye_x || p.eye_laser) return false;
+    const st = p.eye_style || '';
+    if (st === 'closed' || st === 'star' || st === 'heart' || st === 'dollar' || st === 'spiral') return false;
+    if (st === 'wink') return false;                 // paintWink owns that one
+    return !!p.eye_fill_color;                       // irises · ember · glow · wide · void · sleepy · hetero
+  }
+  // THE BLOCK EYES. Same treatment as Calm and Laser, and for the same reason gruff gave: on a 35 grid an
+  // eye is about two cells, so a field-solved eye gains and loses cells with the pose and half-shades its
+  // edges — "hem bulanığımsı hem de net değil". Fixed cells at a rounded anchor cannot do that.
+  //
+  // ⚠️ EACH FAMILY GETS ITS OWN CONSTRUCTION, not one block with a different colour poured in. That was the
+  // first cut and gruff rejected it in the right words: "laser gibi 4 net blok olmamalı onlar. onları onlar
+  // yapan beyaz katmanın içerisinde yer almalarıydı, göz bebeği gibi." A Laser IS its colour; an iris is a
+  // pupil sitting in white. Painting both the same way loses the second one.
+  // ⚠️ NO RECESS ON A LIGHT VEIL — gruff's rule: "light ghostta hiçbir gözde gölge olmayacak."
+  function paintIrisBlocks(g, p, anchors) {
+    if (!irisBlockOwned(p)) return;
+    const CE = CELL, st = p.eye_style || '', kind = p.eye_kind || '';
+    const veiled = (p.veil_opacity != null && p.veil_opacity < 1);
+    const noShadow = noFaceShadow(p);   // one definition, at the top of this file
+    const RECESS = [[-2, -2], [-2, -1], [1, -2], [1, -1], [-1, 0], [0, 0]];
+    const vary = (col, c, r, amt) => shadeHex(col, ((((c * 13 + r * 7) % 5) - 2) * (amt || 0.05)));
+    // ⛔ THE SCLERA IS LIGHT ON A VEIL AND DARK EVERYWHERE ELSE, and that is the whole point of it.
+    // gruff, 2026-08-26: "iris takımı ghostta güzel duruyor ama diğer facetlerde çok açık renkli kaçmış.
+    // gözdeki o göz bebeği dışındaki beyaz yerler bu facetlerde koyu olması lazım ki göz ortaya çıksın."
+    // He is describing contrast, not colour: the sclera's job is to separate the pupil from the FACE, and a
+    // near-white sclera can only do that on a dark face. Ghost's face is pale, so there light wins; on
+    // Collector, OG, Builder and the rest the same white just merges into the skin and the eye disappears.
+    // ⇒ Take the facet's own dark eye tone — the one Calm, X and Closed already use — everywhere but a veil.
+    const hxc = s => { s = '' + s; if (s[0] === '#') return [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16), parseInt(s.slice(5, 7), 16)]; const m = s.match(/\d+/g) || [0, 0, 0]; return [+m[0], +m[1], +m[2]]; };
+    const bgc = hxc(p.bg || '#0a0a1e'), fgc = hxc(p.fg || '#888888');
+    const eyeD = (bgc[0] + bgc[1] + bgc[2]) <= (fgc[0] + fgc[1] + fgc[2]) ? bgc : fgc;
+    const darkF = Math.min(0.5, 90 / (eyeD[0] + eyeD[1] + eyeD[2] || 1));
+    const facetDark = (c, r) => { const f = darkF * (0.7 + (((c * 13 + r * 7) % 6) / 6) * 0.6); return 'rgb(' + ((eyeD[0] * f) | 0) + ',' + ((eyeD[1] * f) | 0) + ',' + ((eyeD[2] * f) | 0) + ')'; };
+
+    const drawOne = (a, side, col) => {
+      const ecx = Math.round(a[0] / CE), ecy = Math.round(a[1] / CE);
+      // ⚠️ WHERE THE EYE REALLY IS, versus the cell it rounds into. The fraction the rounding throws away is
+      // the only pose information an explicit painter has, and it is exactly what gruff asked for: "poza göre
+      // yine oynar fakat genel duruşunu korur." The SCLERA sits on the rounded cell so the stance never
+      // moves; the PUPIL leans one cell inside it. He also said the two eyes need not match in every pose,
+      // and they will not — each anchor rounds on its own.
+      const put = (dc, dr, c) => setCell(g, ecx + dc, ecy + dr, c);
+      // Tones are keyed to the offset INSIDE the eye, not the absolute cell, so the left eye and the right
+      // eye resolve to the same values and neither moves when the anchor rounds into a different cell.
+      // Shifted positive first: `-2 * 13` is negative, JS `%` keeps the sign, and a negative factor drives
+      // a tone darker than black on exactly the cells left of centre. Declared HERE, above the first branch
+      // that uses them — as `const` further down they were in the temporal dead zone for Void and threw.
+      const lx = dc => dc + 4, ly = dr => dr + 4;
+      // ⛔ CLEAR THE BED BEFORE DRAWING THE EYE, AND THIS IS THE ONE THAT COST US AN AFTERNOON.
+      // gruff kept seeing "göz çizmeye çalışan bloklar" beside a one-cell Sleepy line, and I blamed the
+      // field socket, then the brows, and fixed both, and the blocks were still there. The control I should
+      // have run first settles it: render the face with NO EYE AT ALL, size 0 and brows 0, and those exact
+      // cells are still dark. They are the FACE — cheek and nose shading that has always been there. A
+      // two-row eye covers them; a single line leaves them exposed right beside it, where they read as a
+      // broken second eye.
+      // ⇒ So the eye now prepares its own bed: any cell in the eye box that is markedly darker than the
+      //   skin around it is repainted with that skin tone before the eye goes down. Only the speckles go —
+      //   the tone comes from the face three rows up, so the result still belongs to this face and keeps
+      //   its own light. Nothing outside the box is touched.
+      // ⛔ THE SOCKET IS A ROUNDED RECTANGLE AROUND WHATEVER THE EYE IS, AND IT NEVER CHANGES SHAPE.
+      // gruff, on a Collector Iris Blue: "göz çukurlarına bak, saçmalık. göz çukuru yüzünden göz bebekleri
+      // de saçmalamış. yuvarlak ve kare birleşimi gibi bir şey olması lazım."
+      // The old recess was a fixed six-cell scrap written for a 2x2 block, so once the sclera grew to four
+      // columns the ring no longer wrapped anything — it hung off one side as loose blocks, and the eye read
+      // as debris. Now it is DERIVED from the eye's own columns: a full run above and below, one cell down
+      // each side, and the four corners left out. That is the round-meets-square edge he asked for, and
+      // because it is derived it stays correct if the eye ever changes width again.
+      const ringOf = cols => { const c0 = cols[0], c1 = cols[cols.length - 1], out = [];
+        for (const c of cols) { out.push([c, -3]); out.push([c, 0]); }
+        out.push([c0 - 1, -2], [c0 - 1, -1], [c1 + 1, -2], [c1 + 1, -1]); return out; };
+      const socketAround = (cols, f) => { if (noFaceShadow(p)) return; ringOf(cols).forEach(([dc, dr]) => {
+        const c = ecx + dc, r = ecy + dr;
+        if (c < 0 || c >= V7.GRID || r < 0 || r >= V7.GRID) return;
+        if (!g[idx(c, r)]) return; recess(g, c, r, f); }); };
+      const socket = f => { if (noShadow) return; RECESS.forEach(([dc, dr]) => { const c = ecx + dc, r = ecy + dr; if (c < 0 || c >= V7.GRID || r < 0 || r >= V7.GRID) return; if (!g[idx(c, r)]) return; recess(g, c, r, f); }); };
+
+      // ── SLEEPY — flat and linear, a bored lid rather than an eye ────────────────────────────────
+      // gruff: "biraz daha çizgisel ve düz olursa uyuyormuş gibi gösterebiliriz, bored gibi."
+      // So there is no iris at all: one heavy line with a lighter one under it. Nothing in it moves with the
+      // pose, which is the point — a shut lid that wobbled would read as a twitch.
+      // gruff: "sleepy biraz daha koyulaşabilir." The lid now runs off the facet's dark eye tone rather than
+      // Sleepy's own mid grey, which is the same tone Closed uses — a shut eye should be as heavy as a shut
+      // eye, whatever the face under it.
+      // gruff: "sleepy tek çizgi yap, altındaki çizgiye gerek yok." One line it is — the second was reading
+      // as a lid AND a shadow, which is two ideas where the trait only has one.
+      if (st === 'sleepy') {
+        for (const dc of [-2, -1, 0, 1]) put(dc, -1, facetDark(ecx + dc, ecy - 1));
+        return;
+      }
+
+      // ── VOID — bigger, and reading as a HOLE ────────────────────────────────────────────────────
+      // gruff: "daha büyük yapmamız lazımmış gibi, ve çukurlaşıyormuş gibi bir görüntü."
+      // A pit is not a dark square. It is a rim that catches light around a centre that does not, so the ring
+      // takes the indigo at its lightest and the two centre cells take the near-black pupil. The socket is
+      // dug deeper here than for any other eye.
+      // gruff: "çukur çok net ve basit duruyor. og'deki scatter çizim mantığı gibi random çukur olsa daha
+      // iyi, her pozda da ona göre değişir, elle çizilmiş gibi değil de gerçekten parçalanmış gibi."
+      // ⇒ The rim is no longer a drawn ring, it is EATEN. Every candidate cell asks the same hash noise the
+      //   scatter layers use, and roughly a third are left out, so the hole has a broken edge instead of a
+      //   traced one. The hash is fed the ABSOLUTE cell, so a new pose lands on new cells and the damage
+      //   re-shatters by itself rather than sliding along with the eye.
+      // gruff: "void için siyah tonları kullan, gri değil, içine gittikçe açıklaşsın."
+      // ⇒ Black throughout, and the gradient runs the other way from a normal socket: the RIM is the darkest
+      //   thing on the face and it lifts towards the middle. That is what makes it read as depth rather than
+      //   as a dark sticker — you are looking INTO something and the far wall catches a little light.
+      // ⚠️ The rim is still eaten by the same noise the scatter layers use, fed the ABSOLUTE cell, so a new
+      //   pose re-shatters the edge instead of sliding the same chips around.
+      // ⛔ REDRAWN SOLID 2026-08-28, AND THIS REVERSES AN EARLIER INSTRUCTION ON PURPOSE.
+      // The shattered version was gruff's own request ("og'deki scatter çizim mantığı gibi random çukur olsa
+      // daha iyi... gerçekten parçalanmış gibi"), and it was built exactly that way: every rim cell asked a
+      // hash and about a third dropped out, plus the inner top row dropped out 45% of the time.
+      // Seen in the lab against the finished eyes, he called it back: "void'i net tekrar çizelim, göz içinde
+      // dolu olmayan boşluklar görüyorum ve diğer gözler gibi değil çizimi." He is describing what the noise
+      // actually does at this size — at 35x35 a hole in a 10-cell rim is not texture, it is a missing tooth,
+      // and the face shows through it. The other eyes are all fixed constructions; this one was not.
+      // ⇒ Every cell is drawn, no cell is rolled for. The pit is three solid steps of black, darkest at the
+      //   rim and opening inward, which keeps the part he asked for the first time round ("void için siyah
+      //   tonları kullan, gri değil, içine gittikçe açıklaşsın") and drops only the randomness.
+      // ⚠️ Both eyes are now identical, and the pit no longer re-shatters with the pose. That WAS the point
+      //   of the noise; it is gone deliberately, not by accident.
+      if (kind === 'void') {
+        socketAround([-1, 0, 1], 0.55);
+        const BLACK = '#050508';
+        // ⚠️ THE RIM AND THE INTERIOR MUST NOT OVERLAP. The old list had [-1,-2] and [0,-2] in BOTH, so the
+        // rim painted them near-black and the interior step then darkened THAT instead of the face — the
+        // pit would have come out with no floor at all.
+        const RIM = [[-2, -2], [1, -2], [-2, -1], [1, -1], [-2, 0], [-1, 0], [0, 0], [1, 0]];
+        // rim: the darkest thing on the face, with a fixed tonal step per cell so it is solid without being flat
+        RIM.forEach(([dc, dr]) => put(dc, dr, shadeHex(BLACK, 0.04 + (((lx(dc) * 13 + ly(dr) * 7) % 4) * 0.02))));
+        // ⛔ THE INSIDE OF THE PIT IS A FRACTION OF THE FACE, NOT A FIXED GREY — and that is why gruff kept
+        // seeing "boşluklar" in it. The two inner steps were absolute (`shadeHex(BLACK, 0.30/0.46)`), which
+        // lands at brightness 80 and 120 no matter what face they sit on. Measured against the skin three
+        // rows up: NEWBIE 68, COLLECTOR 85, OG 73, WHALE 46. So on four of the seven facets the "floor
+        // catching the light" was the SAME brightness as the face around it, and a hole in a black rim that
+        // matches the skin does not read as depth. It reads as a missing cell, which is exactly what he
+        // called it.
+        // ⇒ Darken the FACE instead: the interior is always a fixed fraction of whatever it sits on, so it
+        //   is guaranteed darker than the skin on every facet, keeps that facet's hue, and still steps
+        //   lighter inward from the rim — the part gruff asked for the first time round.
+        // ⚠️ AND THE FIX FOR THAT WAS ALSO WRONG THE FIRST TIME. Darkening the FACE guaranteed the interior
+        // was under the skin, but a face multiply follows the skin, so the pit changed with the pose and the
+        // two eyes never matched: measured 21-25 different interiors per facet and 4/175 renders with both
+        // eyes alike. gruff asked for the opposite of that — 'formunu her pozda koruyan, iris familyası için
+        // yaptıklarımız gibi'.
+        // ⇒ Fixed tones, chosen against the MEASURED skin. Face brightness near the eye runs 23 (Builder) to
+        //   176 (Ghost); rim 10, one step in 22, floor 37 sits under all of them but Builder, where the rim
+        //   still frames it. The old 80 and 120 sat right on top of four facets' skin, which is what read as
+        //   a hole in the rim.
+        const step = (k, dc, dr) => shadeHex(BLACK, k + (((lx(dc) * 13 + ly(dr) * 7) % 3) * 0.008));
+        [[-1, -1], [0, -1]].forEach(([dc, dr]) => put(dc, dr, step(0.07, dc, dr)));   // one step in
+        [[-1, -2], [0, -2]].forEach(([dc, dr]) => put(dc, dr, step(0.13, dc, dr)));   // the floor, catching the light
+        return;
+      }
+
+      // ── GLOW — a lit core with a bleed, and no sclera at all ────────────────────────────────────
+      // gruff: "glow'u da iris renklerden ayırmalıyız, bir farklılık net lazım."
+      // Every other eye here is a pupil sitting in white. Glow is the inverse: it emits. A bright core with a
+      // dimmer ring bleeding into the face and no white around it, so it cannot be read as one more coloured
+      // iris even at thumbnail size.
+      // gruff: "kontur solid color yerine aynı rengin koyu açık tonları tercih edilebilir."
+      // ⇒ The ring is no longer one flat shade. Each cell takes its own step of the glow hue, so the bleed
+      //   falls off unevenly the way real light does instead of reading as a drawn outline.
+      // ⛔ IT DID NOT LOOK LIKE A GLOW, AND THE RING WAS POINTING THE WRONG WAY. gruff, 2026-08-28:
+      // "sanki çok glow kelimesini göstermiyor." The core was already white; the failure was the ring, which
+      // took the glow hue and DARKENED it by 20% to 58%. So the light fell off into shadow one cell out of
+      // the core, and on a dark face the whole ring sank into the skin: a white dot with a dim smudge round
+      // it. That is a lamp seen through soot, not a lamp.
+      // ⇒ Same twelve cells, opposite direction. The ring now carries the hue at close to full strength and
+      //   falls off only slightly, so it reads as coloured light spilling off a white core. The unevenness
+      //   stays (gruff, earlier: "kontur solid color yerine aynı rengin koyu açık tonları"), it is just
+      //   centred on bright instead of on dark.
+      // ⚠️ The FOOTPRINT is deliberately unchanged. Growing the bloom to the four corners of the box was the
+      //   other candidate and it is the more literal glow, but it makes this eye bigger than every other eye
+      //   in the set, and that is a decision to take on purpose rather than smuggle in with a colour fix.
+      if (kind === 'glow') {
+        const RING = [[-2, -2], [-2, -1], [1, -2], [1, -1], [-1, -3], [0, -3], [-1, 0], [0, 0]];
+        RING.forEach(([dc, dr]) => {
+          const c = ecx + dc, r = ecy + dr;
+          const step = 0.06 - (hashNoise(c, r, p.seed + 271) * 0.30);       // +0.06 .. -0.24 of the same hue
+          put(dc, dr, shadeHex(col, step));
+        });
+        // the core is one fixed near-white, not a per-cell jitter, so both eyes light up identically
+        for (const dr of [-2, -1]) for (const dc of [-1, 0]) put(dc, dr, shadeHex(p.eye_hi_color || col, 0.02));
+        return;
+      }
+
+      // ── THE IRIS FAMILY — a coloured pupil inside a white sclera ────────────────────────────────
+      // gruff: "beyaz katmanın içerisinde yer almalarıydı, göz bebeği gibi. ve tek tonda değillerdi,
+      // aldıkları rengin birkaç tonu yine mevcut olmalı."
+      // ⚠️ THE SCLERA IS DROPPED ON A LIGHT VEIL, and that is a decision rather than a shortcut. White on a
+      // near-white Ghost face is invisible — the same trap that hid the old wink — and rule 1 forbids the
+      // shadow that would otherwise give it an edge. On the lightest veil the ghost is fading, so only the
+      // coloured pupil is left, widened by a cell so it does not read as a speck.
+      // ⛔ ONE FIXED FORM: sclera · iris · sclera, two rows tall. gruff, after seeing the pose-varying
+      // version: "2 dikey blok ıris için güzel ve yeterli, her pozda 2 dikey blokluluğunu korusun" and
+      // "2 dik sıra beyaz blok + 2 ıris + 2 sıra tekrar beyaz blok. yani 3x2 şeklinde olacak bir göz."
+      // ⇒ The pose no longer reshapes the eye at all. Letting it do so was my idea, not his, and it was what
+      //   dragged the pupils out of line in the Collector he flagged. The eye holds its form; the face moves.
+      // ⚠️ AND THE LIGHT VEIL IS NO LONGER A SPECIAL CASE — "light için farklı gözler demiştik, onu iptal et,
+      //   heavy'de ne oluyorsa light için de aynısı olsun." One less rule, and one less way to be wrong.
+      const wide = (kind === 'wide');
+      const irisCols = wide ? [-1, 0] : [0];                    // Wide is the only one with a 2-wide iris
+      const sclL = wide ? [-3, -2] : [-2, -1], sclR = wide ? [1, 2] : [1, 2];
+      const allCols = sclL.concat(irisCols, sclR);
+      socketAround(allCols, 0.8);
+      // light sclera on a veiled face, the facet's own dark eye tone everywhere else. Its job is contrast
+      // with the FACE, not a colour of its own, so it flips with the face it sits in.
+      // light sclera on a veiled face, the facet's own dark eye tone everywhere else. Its job is contrast
+      // with the FACE, not a colour of its own, so it flips with the face it sits in.
+      // ⚠️ A WHITE-ON-EVERY-FACET version was built and shown on 2026-08-26 — a six step white ramp keyed to
+      // distance from the iris, so the sclera read as a lit dome. gruff looked at it across six facets and
+      // chose this one back. Do not re-propose it as a fresh idea; it has been seen and declined.
+      // ⛔ TWO RINGS, NOT ONE. gruff, 2026-08-26: "2x siyah, 2x beyaz, 2x göz bebeği, 2x beyaz, 2x siyah".
+      // The eye was one flat sclera either side of the iris; now the columns TOUCHING the iris are white and
+      // the outer columns stay the facet's dark tone. That reads the way an eye actually does — the white of
+      // the eye immediately around the pupil, and the lid and socket framing it from outside — instead of a
+      // single slab with a dot in it.
+      // ⚠️ On a VEILED face both rings stay light: a dark outer ring on a Ghost would draw a hard box around
+      // an eye whose whole point is that it is barely there, and the pale skin already supplies the framing.
+      // ⚠️ The white is a RAMP, not one value, keyed to distance from the iris — the far cells catch the
+      // light, the near ones fall into the pupil's shadow. Same white vocabulary paintMouth uses for teeth.
+      const WHITES = ['#f8fafc', '#f4f7fb', '#ecf1f7', '#e2e8f0', '#d6dde8'];
+      const innerWhite = (c, r) => WHITES[Math.min(WHITES.length - 1, 1 + (((c * 13 + r * 7) % 3)))];
+      const scl = (c, r) => veiled ? vary(p.eye_hi_color || '#eef2f6', c, r, 0.02) : facetDark(c, r);
+      // which columns are the INNER ring: the ones adjacent to the iris block on either side
+      const innerCols = [irisCols[0] - 1, irisCols[irisCols.length - 1] + 1];
+      // ⛔ ONE TRAIT, TWO DRAWINGS, CHOSEN BY THE TOKEN — gruff, 2026-08-26, having liked both readings:
+      // "tek isim altında 2 farklı çizim. yeni bir şey eklemece yok."
+      //   A = sclera · sclera · iris · sclera · sclera   (one flat surround)
+      //   B = sclera · WHITE  · iris · WHITE  · sclera   (the white of the eye around the pupil)
+      // ⚠️ NO new trait name, and that is the whole point of doing it this way. The trait tables, the
+      // rarity ladder and the name system are locked and live on Base; a second NAME would move all three.
+      // A drawing variant moves nothing but the picture, so metadata, rarity and parity fingerprints for
+      // the trait LIST are untouched.
+      // ⚠️ Chosen from the TOKEN HASH, never from the cell: a fixed probe point so both eyes of one face
+      // agree and the choice is stable for that token forever. This is the Ringers rule — every value comes
+      // from the seed — and it is also what lets anyone re-derive the picture from the chain.
+      // ⚠️ AND IT MUST BE PORTED AS A BRANCH, NOT AS A SECOND PAINTER. The Solidity side needs the same one
+      // boolean off the same hash; the parity harness then has to exercise BOTH variants or half of this is
+      // untested, which is exactly where every bug in this file has been hiding.
+      // `_labIrisVariant` is a LAB override (see defaultsFor) so one token can be shown both ways in a
+      // comparison. It is null for every generated token, so the hash is what decides in every real render.
+      const twoRing = (p._labIrisVariant != null) ? !!p._labIrisVariant : hashNoise(7, 13, p.seed + 977) > 0.5;
+      // ⛔ THE TWO EYES USED TO DISAGREE, AND THE TONAL JITTER IS WHY. Every tone here was keyed to the
+      // ABSOLUTE cell (c * 13 + r * 7), and the two eyes sit on different columns, so the left eye and the
+      // right eye drew the same construction in different shades. gruff, 2026-08-28: "iki göz de aynı
+      // görünürse daha iyi olabilir."
+      // ⇒ Key the tone to the offset INSIDE the eye instead. The eye keeps its mixed tones — the depth rule
+      //   stands, nothing goes flat — but both eyes now resolve to the same values, and they stay the same
+      //   at every pose because the offsets do not move when the anchor cell does.
+      // ⚠️ Offsets are shifted positive before the modulo. `-2 * 13` is negative, JS `%` keeps the sign, and
+      //   a negative factor would have driven the tone darker than black on exactly the cells left of the
+      //   iris. Local coordinates are not automatically safe coordinates.
+      // ⛔ THE VARIANT USED TO SKIP EVERY VEILED FACE — 31 tokens of the 10,000 could only ever be drawn one
+      // way. gruff, 2026-08-28: "o varyasyonlar ghost lightta da çıkabilir olsun bence, yakışabilir."
+      // The reason it was skipped is real: on a veil BOTH rings are light, so swapping the inner ring to the
+      // white ramp put white next to white and the variant did not exist there at all.
+      // ⇒ On a veiled face the variant reads as a STEP IN BRIGHTNESS instead of a colour swap: the inner
+      //   ring takes the brightest white the eye has, the outer ring takes one step down of its own light
+      //   tone. Both rings stay light, so the old warning still holds — a DARK outer ring would draw a hard
+      //   box around a face whose whole point is to be barely there, and that is still not done.
+      const sclAt = (dc, dr) => {
+        const inner = innerCols.includes(dc);
+        if (!twoRing) return scl(lx(dc), ly(dr));
+        if (!veiled) return inner ? innerWhite(lx(dc), ly(dr)) : scl(lx(dc), ly(dr));
+        return inner ? vary('#ffffff', lx(dc), ly(dr), 0.015) : shadeHex(scl(lx(dc), ly(dr)), -0.12);
+      };
+      // ⛔ THE PUPIL READS TOP-LIT, and its top row is a FIXED step, not a random one. It used to be
+      // `vary(col, cell, 0.11)` — a per-cell jitter — which is the other half of why the eyes disagreed.
+      // gruff, 2026-08-28: "üst bloklar açık, alt bloklar koyu olsun". A light top over a dark bottom is
+      // how a round wet thing sits under a light source, and at two cells tall it is the only depth cue
+      // the pupil has room for.
+      for (const dr of [-2, -1]) {
+        for (const dc of sclL.concat(sclR)) put(dc, dr, sclAt(dc, dr));
+        for (const dc of irisCols) put(dc, dr, shadeHex(col, dr === -2 ? 0.20 : -0.30));
+      }
+    };
+    // Heterochromia is the only one whose two eyes differ, and `eye_fill2_color` is the right eye — the
+    // same side the field gave it, so this is a redraw and not also a swap.
+    drawOne(anchors.eyeL, -1, p.eye_fill_color);
+    drawOne(anchors.eyeR, +1, p.eye_fill2_color || p.eye_fill_color);
+  }
+  // WINK = one OPEN 2x2 iris block + one SHUT lid bar, both explicit, both at the SAME height.
+  //
+  // ⛔ WHY IT IS EXPLICIT NOW. As a field eye the wink was not reliably a wink: gruff, 2026-08-26, looking
+  // at the lab — "bazı pozda sağ göz yok, sol göz var, bazı pozda sol göz çarpı işareti gibi, bazısında iki
+  // göz de dolu, e o zaman wink olmuyor bu." All three symptoms are one cause. The field decided each cell
+  // from `nd/irisEdge`, an eye is ~2 cells wide on a 35 grid, so half a cell of yaw dropped a cell here and
+  // added one there, and the shut-lid band could fire on both sides at once.
+  // A wink either reads as a wink or it is a defect; there is no partial credit. So it is drawn, not solved.
+  //
+  // ⚠️ THE LID SITS AT THE BLOCK'S ROW, NOT `paintClosedEyes`' ROW. The Closed trait's bar is anchored one
+  // to two rows lower, which is right for a face with BOTH eyes shut and wrong for a wink, where the open
+  // eye is the reference the viewer lines the lid up against. Copying that shape unchanged would have made
+  // every wink look like a squint with a lazy eye.
+  //
+  // ⚠️ NO RECESS ON A LIGHT VEIL. gruff's rule, same session: "light ghostta hiçbir gözde gölge olmayacak."
+  // A recess is a shadow, and on the lightest veil it muddies a face that is meant to be barely there.
+  function paintWink(g, p, anchors) {
+    if (p.eye_style !== 'wink' || p.eye_piece || p.combo_piece) return;
+    const CE = CELL;
+    const hx = s => { s = '' + s; if (s[0] === '#') return [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16), parseInt(s.slice(5, 7), 16)]; const m = s.match(/\d+/g) || [0, 0, 0]; return [+m[0], +m[1], +m[2]]; };
+    const bg = hx(p.bg || '#0a0a1e'), fg = hx(p.fg || '#888888');
+    // the DARKER of bg/fg, exactly as Calm and Closed pick it: near-black on a saturated face, and on a
+    // veiled Ghost it is the tone that made Void readable while the old wink washed out.
+    const eyeD = (bg[0] + bg[1] + bg[2]) <= (fg[0] + fg[1] + fg[2]) ? bg : fg;
+    const baseF = Math.min(0.5, 90 / (eyeD[0] + eyeD[1] + eyeD[2] || 1));
+    const tone = (c, r) => { const f = baseF * (0.7 + (((c * 13 + r * 7) % 6) / 6) * 0.6); return 'rgb(' + ((eyeD[0] * f) | 0) + ',' + ((eyeD[1] * f) | 0) + ',' + ((eyeD[2] * f) | 0) + ')'; };
+    const BLOCK = [[-1, -2], [0, -2], [-1, -1], [0, -1]];                    // open iris, same anchor as Calm/Laser
+    const RECESS = [[-2, -2], [-2, -1], [1, -2], [1, -1], [-1, 0], [0, 0]];  // socket ring, suppressed on a light veil
+    // ⚠️ THREE CELLS. THIS NUMBER HAS MOVED TWICE, so the history matters more than the value.
+    // The first cut was a 5-block relaxed lid and gruff cut it to two: "sadece yan yana 2 blok yaparsak
+    // daha güzel görüntü olacaktır." At two it matched the open block's width exactly — and read SHORT next
+    // to it, because a shut lid is a line and a line has to overrun the thing it closes to look like one.
+    // gruff, 2026-08-28: "sağdaki çizgiye bir blok daha ekleyelim, kısa kalmış."
+    // ⇒ The third cell goes OUTWARD (+1), away from the nose. Inward would have run the lid into the bridge,
+    //   where it stops reading as an eye closing and starts reading as a smudge across the face.
+    const LID = [[-1, -1], [0, -1], [1, -1]];                               // shut lid: 3 across, on the block's lower row, overrunning outward
+    const noShadow = noFaceShadow(p);   // one definition, at the top of this file
+    // Same bed clearing paintIrisBlocks does, and for the same reason: the face's own cheek and nose
+    // speckles sit right beside the eye and read as a second, broken one. See the long note there.
+    const L = h => { const t = '' + h; if (t[0] === '#') { const x = t.slice(1); return parseInt(x.substr(0,2),16)*.299 + parseInt(x.substr(2,2),16)*.587 + parseInt(x.substr(4,2),16)*.114; } const m = t.match(/d+/g); return m ? (+m[0]*.299 + +m[1]*.587 + +m[2]*.114) : 999; };
+    // LEFT open / RIGHT shut, keeping the side the field used (`res.eyeSide < 0` was the open iris), so the
+    // change is a redraw and not also a mirror.
+    { const a = anchors.eyeL, ecx = Math.round(a[0] / CE), ecy = Math.round(a[1] / CE);
+      if (!noShadow) RECESS.forEach(([dc, dr]) => { const c = ecx + dc, r = ecy + dr; if (c < 0 || c >= V7.GRID || r < 0 || r >= V7.GRID) return; if (!g[idx(c, r)]) return; recess(g, c, r, 0.8); });
+      BLOCK.forEach(([dc, dr]) => setCell(g, ecx + dc, ecy + dr, tone(ecx + dc, ecy + dr))); }
+    { const a = anchors.eyeR, ecx = Math.round(a[0] / CE), ecy = Math.round(a[1] / CE);
+      LID.forEach(([dc, dr]) => setCell(g, ecx + dc, ecy + dr, tone(ecx + dc, ecy + dr))); }
   }
   // X EYES = a facet-toned ✕ (diagonal cross) per eye (studio design), centred on the grid centre (symmetric L/R). Explicit + pose-tracked.
   function paintXEyes(g, p, anchors) {
@@ -1451,7 +1931,7 @@
     const tone = (c, r) => { const f = baseF * (0.7 + (((c * 13 + r * 7) % 6) / 6) * 0.6); return 'rgb(' + ((eyeD[0] * f) | 0) + ',' + ((eyeD[1] * f) | 0) + ',' + ((eyeD[2] * f) | 0) + ')'; };
     const XD = [[-1, -1], [0, 0], [1, 1], [-1, 1], [1, -1]];   // 3x3 ✕ = 5 cells (outer ±2 tips removed)
     const drawEye = (a, cxOff) => { const px = Math.round(a[0] / CE) + cxOff, py = Math.round(a[1] / CE) - 1;   // centres: left (16,20), right (24,20) -> symmetric on grid centre 20
-      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) { const c = px + dc, r = py + dr; if (c < 0 || c >= V7.GRID || r < 0 || r >= V7.GRID) continue; const cur = g[idx(c, r)]; if (!cur) continue; recess(g, c, r, 0.72); }   // recess behind: darken the 3x3 so the ✕ gaps read as socket depth, not bright face poke-through
+      if (!noFaceShadow(p)) for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) { const c = px + dc, r = py + dr; if (c < 0 || c >= V7.GRID || r < 0 || r >= V7.GRID) continue; const cur = g[idx(c, r)]; if (!cur) continue; recess(g, c, r, 0.72); }   // recess behind: darken the 3x3 so the ✕ gaps read as socket depth, not bright face poke-through
       XD.forEach(([dc, dr]) => setCell(g, px + dc, py + dr, tone(px + dc, py + dr))); };
     drawEye(anchors.eyeL, -1); drawEye(anchors.eyeR, 0);
   }
@@ -1464,15 +1944,55 @@
     const BLOCK = [[-1, -2], [0, -2], [-1, -1], [0, -1]];   // 2x2 square = 4 blocks/eye (same anchor as Calm)
     const RECESS = [[-2, -2], [-2, -1], [1, -2], [1, -1], [-1, 0], [0, 0]];   // dark socket behind, for depth
     [anchors.eyeL, anchors.eyeR].forEach(a => { const ecx = Math.round(a[0] / CE), ecy = Math.round(a[1] / CE);
-      RECESS.forEach(([dc, dr]) => { const c = ecx + dc, r = ecy + dr; if (c < 0 || c >= V7.GRID || r < 0 || r >= V7.GRID) return; const cur = g[idx(c, r)]; if (!cur) return; recess(g, c, r, 0.6); });
+      if (!noFaceShadow(p)) RECESS.forEach(([dc, dr]) => { const c = ecx + dc, r = ecy + dr; if (c < 0 || c >= V7.GRID || r < 0 || r >= V7.GRID) return; const cur = g[idx(c, r)]; if (!cur) return; recess(g, c, r, 0.6); });
       BLOCK.forEach(([dc, dr]) => setCell(g, ecx + dc, ecy + dr, LASER[(((ecx + dc) * 3 + (ecy + dr)) % LASER.length + LASER.length) % LASER.length])); });
   }
   // SPIRAL eyes = 2 white diagonal blocks per eye (4 total) over the dark field socket = "hypnotised" hint (2026-07-24 user). Depth from the socket (like Iris Blue); nothing drawn outside the 4 white blocks; pose-stable.
   function paintSpiral(g, p, anchors) {
     if (p.eye_style !== 'spiral' || p.eye_piece || p.combo_piece) return;
-    const CE = CELL, WH = [[0, -1], [1, 0]];   // 2 white blocks TOUCHING diagonally (no gap) per eye -> spiral read (2026-07-24 user: "dip dibe")
+    const CE = CELL;
+    // ⛔ 2026-08-26, gruff: "spiral ghost gelirse beyaz bloklar siyah olsun, ve bazen o beyaz bloklar
+    // çukurdan çıkmış gibi görünüyor — çukurun içinde olmalılar."
+    // Two separate faults. The blocks were at (0,-1) and (1,0), and (1,0) sits OUTSIDE the socket the field
+    // digs, so on some poses a bright chip floated on the cheek with nothing behind it. And white was chosen
+    // for a dark socket; on a veiled Ghost the socket is pale and the white simply vanished into it.
+    // ⇒ Both blocks moved inside the 2x2 the socket actually covers, and on a veiled face they invert to
+    //   near-black, which is what the pale Ghost socket needs in order to show a spiral at all.
+    // ⚠️ THE BLOCKS ARE LIGHT ON EVERY FACE NOW, and the veil flag that used to pick between two
+    // colours is gone with them. Flipping to near-black on a veil was right while the socket was the
+    // FIELD's: on a pale Ghost that socket came out pale and a white block vanished into it. The pit is
+    // drawn dark on every facet now, so the blocks have a dark ground everywhere and need one colour.
+    const col = '#eef2f8';
+    // ⛔ SPIRAL NOW DIGS ITS OWN SOCKET (2026-08-28). It never had one: it borrowed the FIELD's, and the
+    // field's socket was not a shadow at all, it was a hole punched through the head — 9.74 background cells
+    // per render, and on a pale Ghost the "dark socket" came out as a cluster of WHITE. Flooring the field
+    // (earlier today) stopped the hole, and then gruff saw what was actually left underneath:
+    // "spiralin beyaz blokların altında kalan göz çukuru nereye gitti, o kötü göstermiş, altına her gözde
+    // olduğu gibi çukur eklenmeli."
+    // ⛔ AND THE FIELD'S SOCKET NEVER HELD ITS SHAPE. Measured over 175 renders (7 facets x 25 poses): the
+    // eye box came out in **90 different patterns**. A field socket is decided per cell from a distance
+    // equation, so half a cell of yaw changes which cells clear the threshold, and the spiral was two blocks
+    // sitting in a different ragged hole every time.
+    // gruff, 2026-08-28: "koyu bir çukurda 2 tane çapraz blok olmalı bir göz için. bu her pozda korunmalı ve
+    // net olmalı."
+    // ⇒ Spiral leaves the field entirely (it is out of the `_own` exclusion list now) and draws the whole
+    //   eye itself: a solid 4x2 pit in the facet's own dark tone, a recess ring for depth, then the two
+    //   diagonal blocks. Fixed offsets from the rounded anchor, so it is identical at every pose and
+    //   identical in both eyes — the same move that fixed Wink, Calm and the iris family.
+    // ⚠️ The PIT is the eye, so it is always drawn. The RING is a shadow, so it obeys `lightFace`.
+    const hx2 = s => { s = '' + s; if (s[0] === '#') return [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16), parseInt(s.slice(5, 7), 16)]; const m = s.match(/\d+/g) || [0, 0, 0]; return [+m[0], +m[1], +m[2]]; };
+    const _sbg = hx2(p.bg || '#0a0a1e'), _sfg = hx2(p.fg || '#888888');
+    const eyeD = (_sbg[0] + _sbg[1] + _sbg[2]) <= (_sfg[0] + _sfg[1] + _sfg[2]) ? _sbg : _sfg;   // the facet's darker tone, as Calm/Closed/Wink pick it
+    const baseF = Math.min(0.5, 90 / (eyeD[0] + eyeD[1] + eyeD[2] || 1));
+    const pit = (c, r) => { const f = baseF * (0.7 + (((c * 13 + r * 7) % 6) / 6) * 0.6); return 'rgb(' + ((eyeD[0] * f) | 0) + ',' + ((eyeD[1] * f) | 0) + ',' + ((eyeD[2] * f) | 0) + ')'; };
+    const lx = dc => dc + 4, ly = dr => dr + 4;   // tones keyed inside the eye -> both eyes identical
+    const PIT = [[-2, -2], [-1, -2], [0, -2], [1, -2], [-2, -1], [-1, -1], [0, -1], [1, -1]];   // 4 wide x 2 tall
+    const RING = [[-3, -2], [-3, -1], [2, -2], [2, -1], [-2, 0], [-1, 0], [0, 0], [1, 0]];      // depth around the pit
+    const WH = [[-1, -2], [0, -1]];   // diagonal, both inside the pit (2026-07-24 user: "dip dibe")
     [anchors.eyeL, anchors.eyeR].forEach(a => { const ecx = Math.round(a[0] / CE), ecy = Math.round(a[1] / CE);
-      WH.forEach(([dc, dr]) => setCell(g, ecx + dc, ecy + dr, '#eef2f8')); });
+      PIT.forEach(([dc, dr]) => setCell(g, ecx + dc, ecy + dr, pit(lx(dc), ly(dr))));
+      if (!noFaceShadow(p)) RING.forEach(([dc, dr]) => { const c = ecx + dc, r = ecy + dr; if (!inb(c, r) || !g[idx(c, r)]) return; recess(g, c, r, 0.72); });
+      WH.forEach(([dc, dr]) => setCell(g, ecx + dc, ecy + dr, col)); });
   }
   // Explicit BOLD eyebrow cells for shaped expressions — the field brow is too faint to read on the 41-grid.
   function paintBrows(g, p, anchors) {
@@ -1504,7 +2024,29 @@
     const _sig = _st(_bg) > _st(_fg) + 0.08 ? _bg : _fg;   // MOUTH pieces: the facet's SATURATED signature colour (matches paintMouth)
     const _eyeD = (_bg[0] + _bg[1] + _bg[2]) <= (_fg[0] + _fg[1] + _fg[2]) ? _bg : _fg;   // EYE pieces: DARKER of bg/fg -> near-black on saturated-face facets, never blends
     const _bf = base => Math.min(0.5, 90 / (base[0] + base[1] + base[2] || 1));   // normalized DARK target (~90 brt)
-    const resolve = (col, c, r, base) => { if (col !== 'FDARK') return col; const b = base || _sig, f = _bf(b) * (0.7 + (((c * 13 + r * 7) % 6) / 6) * 0.6); return 'rgb(' + ((b[0] * f) | 0) + ',' + ((b[1] * f) | 0) + ',' + ((b[2] * f) | 0) + ')'; };   // FDARK -> tonal facet blocks; eyes pass _eyeD, mouths default to _sig
+    // ⛔ A HASH-PICKED COLOUR, and deliberately not a second drawing. A piece is built ONCE at module load
+    //    (eye_pieces caches PIXEL_SHADE.build(shape()) per name), so a piece cannot vary per token by
+    //    itself. Resolving a colour TOKEN at render time buys the variant with no second cache, no second
+    //    painter, and no change to metadata or rarity - the property the iris variant already relies on:
+    //    "a drawing variant moves nothing but the picture".
+    // ⚠️ FROM THE TOKEN HASH AT A FIXED PROBE POINT, never from the cell, so both eyes of one face agree
+    //    and the choice is stable for that token forever. Ringers rule: every value comes from the seed.
+    // ape skin families - the same face, a different animal. Index 0 is the original sand.
+    const APE_SKIN = [
+      ['#f0d6b2', '#e2c39a', '#cfab7e', '#b89163', '#9d764a', '#7e5c37', '#5e4426', '#412e19'],   // sand
+      ['#f4e2da', '#e3ccc2', '#cfb2a6', '#b6968a', '#98796d', '#7a5e53', '#5c453c', '#3e2d27'],   // ashen
+      ['#d9b48a', '#c29a6e', '#a87f55', '#8c6540', '#704e2f', '#563a21', '#3d2815', '#26180b'],   // umber
+      ['#f6cfa0', '#e8b784', '#d29c66', '#b8804d', '#996438', '#7a4c26', '#5b3618', '#3d240f'],   // copper
+      ['#f9efdc', '#eddfc6', '#dcc9ac', '#c4ae91', '#a89275', '#8a765b', '#6b5a43', '#4b3e2d']];  // bone
+    const APE_IRIS = ['#d1892a', '#b06a1e', '#e0a63a', '#8f5a24', '#c9a24a'];
+    const _apeV = Math.min(APE_SKIN.length - 1, Math.floor(hashNoise(11, 29, (p.seed | 0) + 941) * APE_SKIN.length));
+    const _apeSkin = APE_SKIN[_apeV], _apeIris = APE_IRIS[_apeV];
+    const PUPIL3 = ['#ff2a1a', '#ff7a1a', '#2f8fff'];
+    const _pupil = PUPIL3[Math.min(2, Math.floor(hashNoise(9, 23, (p.seed | 0) + 613) * 3))];
+    const resolve = (col, c, r, base) => { if (col === 'PUPIL') return _pupil;
+      // AS0..AS7 = the ape skin ramp, ASI its iris - both chosen from the token hash, like PUPIL
+      if (col.charCodeAt(0) === 65 && col.charCodeAt(1) === 83) return col === 'ASI' ? _apeIris : _apeSkin[col.charCodeAt(2) - 48];
+      if (col !== 'FDARK') return col; const b = base || _sig, f = _bf(b) * (0.7 + (((c * 13 + r * 7) % 6) / 6) * 0.6); return 'rgb(' + ((b[0] * f) | 0) + ',' + ((b[1] * f) | 0) + ',' + ((b[2] * f) | 0) + ')'; };   // FDARK -> tonal facet blocks; eyes pass _eyeD, mouths default to _sig
     if (p.eye_piece && window.FACET_EYES) {
       const nx = (N0.eyeL[0] + N0.eyeR[0]) / 2, ny = (N0.eyeL[1] + N0.eyeR[1]) / 2;
       const ex = (anchors.eyeL[0] + anchors.eyeR[0]) / 2, ey = (anchors.eyeL[1] + anchors.eyeR[1]) / 2;
@@ -1522,12 +2064,12 @@
         cdcR = Math.round(dxR / CE) - Math.round(dxA / CE); cdrR = Math.round(dyR / CE) - Math.round(dyA / CE);
       }
       const clip = window.FACET_EYES.clipOf && window.FACET_EYES.clipOf(p.eye_piece);   // Eyepatch: clip straps to the head edge
-      if (window.FACET_EYES.socketOf && window.FACET_EYES.socketOf(p.eye_piece)) {   // DEPTH: light, partial 1-row shadow just under each eye (subtle lower-lid hint, not a dark disc)
+      if (!noFaceShadow(p) && window.FACET_EYES.socketOf && window.FACET_EYES.socketOf(p.eye_piece)) {   // DEPTH: light, partial 1-row shadow just under each eye (subtle lower-lid hint, not a dark disc)
         [anchors.eyeL, anchors.eyeR].forEach(a => { const ec = Math.round(a[0] / CE), er = Math.round(a[1] / CE) + 1;
           for (let dcx = -1; dcx <= 1; dcx++) { const c = ec + dcx; if (((c + er) & 1) === 0) continue;   // partial: only ~half the cells -> soft, dappled
             if (c < 0 || c >= V7.GRID || er < 0 || er >= V7.GRID) continue; recess(g, c, er, 0.78); } });
       }
-      if (window.FACET_EYES.deepSocketOf && window.FACET_EYES.deepSocketOf(p.eye_piece)) {   // subtle recess RING around the eye (Iris-like depth for masks e.g. Kohl)
+      if (!noFaceShadow(p) && window.FACET_EYES.deepSocketOf && window.FACET_EYES.deepSocketOf(p.eye_piece)) {   // subtle recess RING around the eye (Iris-like depth for masks e.g. Kohl)
         const RS = CE * 2.2;
         [anchors.eyeL, anchors.eyeR].forEach(a => { for (let r = 0; r < V7.GRID; r++) for (let c = 0; c < V7.GRID; c++) {
           const d = Math.hypot((c + 0.5) * CE - a[0], (r + 0.5) * CE - a[1]); if (d > RS || d < CE * 1.05) continue;   // ring only (piece covers the centre)
@@ -1535,7 +2077,7 @@
         } });
       }
       const cells = window.FACET_EYES.cells(p.eye_piece);
-      if (window.FACET_EYES.shadowOf && window.FACET_EYES.shadowOf(p.eye_piece)) {   // glasses: light, partial 1-row shadow just below the frame (subtle, not a solid band)
+      if (!noFaceShadow(p) && window.FACET_EYES.shadowOf && window.FACET_EYES.shadowOf(p.eye_piece)) {   // glasses: light, partial 1-row shadow just below the frame (subtle, not a solid band)
         const rs = cells.map(x => x[1] + dr), cs = cells.map(x => x[0] + dc), r = Math.max(...rs) + 1, mnc = Math.min(...cs), mxc = Math.max(...cs);
         for (let c = mnc; c <= mxc; c++) { if (((c + r) & 1) === 0) continue; if (c < 0 || c >= V7.GRID || r < 0 || r >= V7.GRID) continue; recess(g, c, r, 0.78); }
       }
@@ -1569,7 +2111,17 @@
       }
     }
     if (p.mouth_piece && window.FACET_MOUTHS) {
-      const dc = Math.round(anchors.mouth[0] / CE) - Math.round(N0.mouth[0] / CELL41), dr = Math.round(anchors.mouth[1] / CE) - Math.round(N0.mouth[1] / CELL41);   // track the face's cell crossings (no lag); CELL41 remaps the 41-authored neutral onto the current grid
+      // ⛔ A PAIRED JAW TRAVELS WITH ITS MASK, NOT WITH THE MOUTH. Skull, Hockey Mask and Ape are one piece
+      //    of art split across two traits, and the mouth anchor moves by a DIFFERENT amount than the eye
+      //    midpoint - measured: the two disagree at all eight sampled poses, yaw 0 included, by up to one
+      //    cell each way. So the jaw sat off its own mask on every token.
+      //    gruff: "yuz hareket ederken agiz hareket etmiyor hockey'de."
+      const _pair = window.FACET_MOUTHS.pairEyeOf && window.FACET_MOUTHS.pairEyeOf(p.mouth_piece);
+      const _mx = _pair ? (anchors.eyeL[0] + anchors.eyeR[0]) / 2 : anchors.mouth[0];
+      const _my = _pair ? (anchors.eyeL[1] + anchors.eyeR[1]) / 2 : anchors.mouth[1];
+      const _nx = _pair ? (N0.eyeL[0] + N0.eyeR[0]) / 2 : N0.mouth[0];
+      const _ny = _pair ? (N0.eyeL[1] + N0.eyeR[1]) / 2 : N0.mouth[1];
+      const dc = Math.round(_mx / CE) - Math.round(_nx / CELL41), dr = Math.round(_my / CE) - Math.round(_ny / CELL41);   // track the face's cell crossings (no lag); CELL41 remaps the 41-authored neutral onto the current grid
       const cells = window.FACET_MOUTHS.cells(p.mouth_piece);
       for (let i = 0; i < cells.length; i++) setCell(g, cells[i][0] + dc, cells[i][1] + dr, resolve(cells[i][2], cells[i][0] + dc, cells[i][1] + dr));
     }
@@ -2119,6 +2671,7 @@
   })();
 
   function render(gtok) {
+    PROT = new Set();          // per render; the face loop below fills it
     const _pp = gtok.params || {};
     const key = (gtok.tokenHash || gtok.id || 0) + '_v7_' + V7.GRID + '_' + (_pp.eye_piece || '') + '_' + (_pp.mouth_piece || '');
     if (V7.cache.has(key)) return V7.cache.get(key);
@@ -2161,6 +2714,8 @@
     paintEyeIcons(g, p, anchors);            _sn('eyeIcons', g);   // crisp star/heart/dollar block icons
     paintClosedEyes(g, p, anchors);          _sn('closedEyes', g);   // simple closed-eye bars
     paintCalm(g, p, anchors);                _sn('calm', g);   // CALM: explicit 2x2 iris blocks + recess
+    paintWink(g, p, anchors);                _sn('wink', g);   // WINK: explicit open block + shut lid, pose-invariant
+    paintIrisBlocks(g, p, anchors);          _sn('irisBlocks', g);   // irises · ember · glow · wide · void · sleepy · hetero
     paintXEyes(g, p, anchors);               _sn('xEyes', g);   // X EYES: explicit facet-toned + cross per eye
     rec(TAG ? (p._animLaser || 0) : 0, () => paintLaser(g, p, anchors), p._animLaserLit);   _sn('laser', g);   // LASER: red 2x2 per eye + the ~1s burn on top
     paintSpiral(g, p, anchors);              _sn('spiral', g);   // SPIRAL: 4 white diagonal blocks over the dark socket

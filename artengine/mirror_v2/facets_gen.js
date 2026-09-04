@@ -63,7 +63,7 @@
     // so every roll lands exactly where it landed before. Deleting the row would have renormalised the
     // other eight weights and CHANGED THE ART. Proof: GLOBAL FINGERPRINT did not move.
     // Block trait REMOVED 2026-07-13 (user) — obsolete under the fixed 41x41 native grid. block_size is pinned to 24 (~native cell 24.39) in generate() only for the halo-fit / whale math; the native renderer uses CELL, not block_size. No longer a trait / not in metadata / not in rarity.
-    Eyes:       [['Calm', 797.82], ['Iris Blue', 786.34], ['Iris Green', 810.73], ['Sleepy', 846.61], ['Closed', 767.69], ['Sharp', 370.21], ['Sad', 397.47], ['Skeptical', 375.95], ['Wide', 408.95], ['Wink', 424.74], ['Human', 419], ['Void', 201.01], ['Iris Violet', 175.64], ['Iris Gold', 204.59], ['Kohl', 180.37], ['Long', 189.2], ['Big Eyes', 197.25], ['Cross-eyed', 193.32], ['Heterochromia', 184.89], ['Glow', 154.4], ['Ember', 170.69], ['Spiral', 160.08], ['X Eyes', 142.21], ['Shades', 128.85], ['Eyepatch', 148.44], ['Visor', 135.68], ['Star', 165.51], ['Heart', 114.2], ['Dollar', 61.21], ['3D Glasses', 106.35], ['Crying', 98.14], ['Cyber Visor', 80.52], ['Bandit', 89.53], ['Vault', 71.09], ['Rainbow Shades', 121.69], ['Flame Eyes', 40.04], ['Cyclops', 50.87], ['Laser', 28.7]],
+    Eyes:       [['Blank', 365.43], ['Human', 414], ['Sharp', 395.66], ['Wide', 389.71], ['Wink', 346.06], ['Sad', 324.23], ['Iris Blue', 354.51], ['Iris Green', 285.98], ['Calm', 298.18], ['Closed', 276.4], ['Sleepy', 320.85], ['Skeptical', 266.79], ['Squint', 254.85], ['Curious', 259.5], ['Shocked', 246.81], ['Side Eye', 235.01], ['Iris Violet', 264.91], ['Glow', 233.6], ['Ember', 201.51], ['Void', 211.13], ['Long', 180.4], ['Cross-eyed', 179.87], ['Big Eyes', 194.19], ['X Eyes', 150.56], ['Heterochromia', 166.91], ['Kohl', 169.52], ['Furious', 136.7], ['Miner', 186.53], ['Round Frames', 151.96], ['Loupe', 129.11], ['Static', 159.74], ['Borrowed Goggles', 126.02], ['Diving Mask', 134.45], ['Noggles', 116.44], ['Eyepatch', 110.77], ['3D Glasses', 130.42], ['Shades', 120.54], ['Spiral', 93.34], ['Blindfold', 109.14], ['Hi-Vis', 76.04], ['Frog', 85.96], ['Pit Viper', 87.29], ['Dollar', 88.39], ['Scanner', 87.95], ['Visor', 84.12], ['Rainbow Shades', 86.08], ['Crying', 79.05], ['Iris Gold', 67.28], ['Heart', 60.54], ['Star', 64.45], ['Cyber Visor', 73.54], ['Bandit', 58.47], ['Vault', 55.63], ['Hockey Mask', 54.51], ['Cyclops', 51.88], ['Gold Shades', 38.58], ['Ape', 36.38], ['Flame Eyes', 28.91], ['Laser', 16.48], ['Skull', 15.24], ['Alien', 11.49]],
     // ⚠️⚠️ THE ORDER OF THIS ARRAY IS LOAD-BEARING — DO NOT SORT IT. The INDEX is the on-chain eye id:
     // `FacetsGenRoll._wEyes()` is the same 38 slots in the same order and `FacetsGenP` maps index -> name
     // (`if(e==36) return "Cyclops"`). Re-tuning the weights is safe; MOVING A ROW silently renames every
@@ -89,7 +89,7 @@
     // ⚠️ Weights are in TEN-THOUSANDTHS, so they are supply-independent — a supply cut rescales them all
     // and the ladder keeps its shape. Do not rewrite this table as counts.
     // Deep + Texture REMOVED as separate traits 2026-06-24 — folded into the Background trait values. Render flags derived from the Background value in generate().
-    Mouth:      [['Stoic', 924.09], ['gm', 990.1], ['Open', 981.49], ['Frown', 964.27], ['Surprised', 947.05], ['Sealed', 912.61], ['Smile', 498.47], ['Grin', 473.5], ['Gritted', 447.49], ['Drool', 420.4], ['Kiss', 332.15], ['Cigar', 300.25], ['Gold Grill', 267.02], ['Screaming', 232.41], ['Feral', 362.77], ['Tongue Out', 392.17], ['Party Blower', 196.35], ['Bubblegum', 158.8], ['Rose', 119.67], ['Fangs', 78.92], ['Rainbow Vomit', 0]],   // ⚠️ ORDER FROZEN — the index is the on-chain mouth id (`FacetsGenRoll._wMouth()`, 21 slots). 2026-08-08 (gruff): LADDER, same treatment as Eyes but gentler — "aralığı çok hafif açabiliriz". At 6969: gm 690 · Open 684 · Frown 672 · Surprised 660 · Stoic 644 · Sealed 636 · Smile 347 · Grin 330 · Gritted 312 · Drool 293 · Tongue Out 273 · Feral 253 · Kiss 231 · Cigar 209 · Gold Grill 186 · Screaming 162 · Party Blower 137 · Bubblegum 111 · Rose 83 · Fangs 55. Was six tiers 32/16/8/4/1 with FOUR values tied at the rare end (Party Blower 85 · Rose 84 · Fangs 80 · Bubblegum 79).
+    Mouth:      [['Stoic', 924.09], ['gm', 990.1], ['Open', 981.49], ['Frown', 964.27], ['Surprised', 947.05], ['Sealed', 912.61], ['Smile', 498.47], ['Grin', 473.5], ['Gritted', 447.49], ['Drool', 420.4], ['Kiss', 332.15], ['Cigar', 300.25], ['Gold Grill', 78.92], ['Screaming', 232.41], ['Feral', 362.77], ['Tongue Out', 392.17], ['Party Blower', 196.35], ['Bubblegum', 158.8], ['Rose', 119.67], ['Fangs', 267.02], ['Rainbow Vomit', 0], ['Skull Jaw', 0], ['Hockey Jaw', 0], ['Ape Jaw', 0], ['Alien Jaw', 0]],   // ⚠️ ORDER FROZEN — the index is the on-chain mouth id (`FacetsGenRoll._wMouth()`, 21 slots). 2026-08-08 (gruff): LADDER, same treatment as Eyes but gentler — "aralığı çok hafif açabiliriz". At 6969: gm 690 · Open 684 · Frown 672 · Surprised 660 · Stoic 644 · Sealed 636 · Smile 347 · Grin 330 · Gritted 312 · Drool 293 · Tongue Out 273 · Feral 253 · Kiss 231 · Cigar 209 · Gold Grill 186 · Screaming 162 · Party Blower 137 · Bubblegum 111 · Rose 83 · Fangs 55. Was six tiers 32/16/8/4/1 with FOUR values tied at the rare end (Party Blower 85 · Rose 84 · Fangs 80 · Bubblegum 79).
     // ⚠️ FANGS IS THE FLOOR BY CHOICE. The old table had Party Blower / Bubblegum / Rose / Fangs all on
     // weight 4, i.e. no opinion about which is rarest; its own note called Fangs "the signature special",
     // so that is the one given the floor. Reorder freely — it is one line — but pick, do not tie.
@@ -326,17 +326,29 @@
   //  applyEyeTrait just sets the engine params: eye_fill_color (iris), eye_pupil_color, eye_hi_color, eye_size_extra.
   const EYE_DEF = {
     'Calm':         { calm: true, size: 0.6, brow: 0.6 },                                   // explicit 2x2 facet-toned iris blocks (paintCalm) + recess — studio design, NOT the field socket
-    'Sharp':        { size: 0.0, brow: 2.2, brow_shape: 'sharp' },                          // longer + sharper angled brow -> piercing gaze
+    // ⛔ THE THREE BROW EXPRESSIONS HAD NO EYE AT ALL, AND THAT IS WHY THEY MOVED (gruff, 2026-08-28: "A").
+    // They carry no fill and no style, so `faceCellColor` reached `if (!fillCol) return null` on the cells
+    // the field had claimed — and null does not mean dark, it means DELETE THE CELL. What read as an eye was
+    // the BACKGROUND showing through the head. Measured over 42 renders each: the hole moved between 0 and 8
+    // cells with the pose and came out a different size on the left and right eye in two renders of three.
+    // Sad 4.05 holes/render, Skeptical 2.93, Sharp 2.14, and 17% of them landed LIGHTER than the face.
+    // ⇒ `calm: true` gives them CALM's construction: the field stands down (`_calm`, the same guard Closed
+    //   and Laser use) and `paintCalm` draws a fixed 2x2 facet-toned block at the rounded anchor, so both
+    //   eyes are identical and no pose can reshape them. Their own brows still carry the expression, which
+    //   is the whole point of these three: the EYE is neutral, the BROW is the emotion.
+    // ⚠️ NOT a new drawing. It is the block gruff signed off on for Calm, reused. `size` is inert for them
+    //    now (every guard that reads eye_size_extra is behind the same exemption) and is left as authored.
+    'Sharp':        { calm: true, size: 0.0, brow: 2.2, brow_shape: 'sharp' },              // longer + sharper angled brow -> piercing gaze
     'Sleepy':       { style: 'sleepy', fill: '#555558', size: 1.6 },                        // droopy half-lid squint (distinct from Calm + Closed)
     'Iris Blue':    { fill: '#3b7fe0', pupil: '#0a1430', hi: '#dff0ff', size: 2.7 },
     'Iris Green':   { fill: '#2fd36a', pupil: '#06230f', hi: '#e6ffe9', size: 2.7 },
     'Iris Gold':    { fill: '#fcd34d', pupil: '#3a2400', hi: '#fff7d6', size: 2.7 },
     'Iris Violet':  { fill: '#a96bff', pupil: '#1c0640', hi: '#efe2ff', size: 2.7 },
-    'Glow':         { fill: '#9fe9ff', pupil: '#2a6f86', hi: '#ffffff', size: 2.9 },
+    'Glow':         { kind: 'glow', fill: '#9fe9ff', pupil: '#2a6f86', hi: '#ffffff', size: 2.9 },   // own construction: a lit core with a bleed ring, so it never reads as just another iris colour
     'Laser':        { laser: true, size: 0.6 },                                              // explicit glowing-red 2x2 SQUARE (paintLaser), pose-invariant — rarest eye, stands out
     'Ember':        { fill: '#ff7a1a', pupil: '#5a1500', hi: '#ffe2a0', size: 2.7 },
-    'Wide':         { fill: '#eef2f6', pupil: '#0a0a14', hi: '#ffffff', size: 3.4 },
-    'Void':         { fill: '#2a2a48', pupil: '#06060c', size: 2.8 },                        // deep indigo void (visible-but-empty, was near-invisible)
+    'Wide':         { kind: 'wide', fill: '#eef2f6', pupil: '#0a0a14', hi: '#ffffff', size: 3.4 },
+    'Void':         { kind: 'void', fill: '#2a2a48', pupil: '#06060c', size: 2.8 },                        // deep indigo void (visible-but-empty, was near-invisible)
     'Closed':       { style: 'closed', fill: '#3a3a42', size: 1.5 },                         // eyes SHUT: dark lid line + socket hole suppressed in render -> truly closed (no open dark eye)
     'Wink':         { style: 'wink', fill: '#eef2f6', pupil: '#0a0a14', hi: '#ffffff', size: 2.9 },   // left open (light iris), right a closed line
     'Star':         { style: 'star', fill: '#ffd24a', size: 3.4 },                           // starstruck — gold star
@@ -348,8 +360,8 @@
     'Bandit':       { mask: 'bandit', maskColor: '#ff2a2a', size: 0.8 },                     // masked-thief: black band + RED glowing eyes
     'Vault':        { mask: 'bandit', maskColor: '#ffd24a', size: 0.8 },                     // masked-thief, GOLD eyes (rarer)
     'X Eyes':       { xcross: true, size: 0.6, brow: 0.6 },                                  // explicit facet-toned + (cross) per eye (paintXEyes) — KO/dead look, studio design
-    'Sad':          { size: 0.8, brow: 1.9, brow_shape: 'sad' },                            // colourless worried/sad expression — bold slanted brows (visible on grid)
-    'Skeptical':    { size: 0.8, brow: 1.9, brow_shape: 'skeptical' },                      // colourless one-raised-brow expression (studio sketch)
+    'Sad':          { calm: true, size: 0.8, brow: 1.9, brow_shape: 'sad' },                // worried/sad expression — bold slanted brows over a neutral eye (see the note on Sharp)
+    'Skeptical':    { calm: true, size: 0.8, brow: 1.9, brow_shape: 'skeptical' },          // one-raised-brow expression over a neutral eye (see the note on Sharp)
   };
   function applyEyeTrait(p, ev) {                     // wire the trait into the engine's face-cell eye rendering
     const d = EYE_DEF[ev]; if (!d) return;
@@ -359,6 +371,20 @@
     p.eye_size_extra = d.size;
     p.eye_fill_color = d.fill || null;
     p.eye_fill2_color = d.fill2 || null;             // Heterochromia: right-eye iris
+    // ⚠️ CARRIED, NOT GUESSED. The block painter has to tell Glow and Void apart from the plain irises,
+    // and the only other handle in params was the fill COLOUR. Matching on '#9fe9ff' would break the day
+    // someone retunes a palette, and break SILENTLY — as a wrong-looking eye rather than an error.
+    // ⛔ WHO GETS A FACE SOCKET. The field darkens the FACE under every eye by up to 85% (portrait_v6, see
+    // the long note there). That is right for an eye the field itself draws, and wrong for one an explicit
+    // painter draws, because the painter can only cover part of the hollow and the rest stays on the
+    // portrait looking like a second broken eye. So the eyes with their own painters switch it off and get
+    // the plain face everyone assumed was there.
+    // ⚠️ NOT a hand-typed list: it is derived from the same facts the painter dispatches on, so an eye
+    // cannot end up in one set and not the other.
+    p.eye_socket_off = !(d.mask || d.calm || d.xcross || d.laser)
+      && !(d.style === 'closed' || d.style === 'star' || d.style === 'heart' || d.style === 'dollar' || d.style === 'spiral')
+      && !!(d.fill || d.style === 'wink');
+    p.eye_kind = d.kind || null;                     // 'glow' | 'void' | 'wide' | null (the plain iris family)
     p.eye_style = d.style || null;                   // shape style (x/closed/wink/star/heart/dollar/spiral/hetero)
     p.eye_calm = d.calm || false;                    // CALM: explicit 2x2 iris blocks (reset each call so it never leaks)
     p.eye_x = d.xcross || false;                     // X EYES: explicit facet-toned + cross (reset each call)
@@ -599,6 +625,10 @@
     // pct -> None showed an inconsistent 0-13% per token. Now every token's Background pct is the real % over 10000.
     { const _bgA = attributes.find(a => a.trait === 'Background'); if (_bgA && _BG_FREQ[_bgA.value] != null) _bgA.pct = _BG_FREQ[_bgA.value]; }
     // EYES (universal): wire the trait into the face's own eye socket (integral + proportional to Block)
+    // PLACEMENT PASS - see apply_swaps.cjs. Swaps, so no count moves.
+    const _PLACEMENT = {"1":"Shades","2":"Cyber Visor","3":"Blank","4":"Wide","5":"Blank","6":"Hockey Mask","7":"Hockey Mask","8":"Skull","11":"Sharp","24":"Alien","42":"Skull","43":"Skull","100":"Alien","488":"Iris Violet","1006":"Cross-eyed","1156":"Eyepatch","1307":"Kohl","1583":"Alien","1924":"Skull","3507":"Skeptical","3670":"Noggles","4801":"Noggles","5128":"Iris Blue","5361":"Wink","5792":"Hockey Mask","5849":"Iris Green","6170":"Wide","6386":"Ape"};
+    { const _pv = _PLACEMENT[tokenId]; if (_pv) { const _ei = attributes.findIndex(a => a.trait === 'Eyes');
+        if (_ei >= 0) attributes[_ei].value = _pv; } }
     const _eyesV = (attributes.find(a => a.trait === 'Eyes') || {}).value || 'Calm';
     p.eye_piece = null;
     if (typeof FACET_EYES !== 'undefined' && FACET_EYES.defs && FACET_EYES.defs[_eyesV]) {
@@ -616,6 +646,8 @@
     // because the rainbow stream is a TOP layer over everything (a busy bg behind it does not matter -> no clean-bg gating needed).
     let mouthV = (attributes.find(a => a.trait === 'Mouth') || {}).value || 'Stoic';
     const _mi = attributes.findIndex(a => a.trait === 'Mouth');
+    { const _P = { 'Skull': 'Skull Jaw', 'Hockey Mask': 'Hockey Jaw', 'Ape': 'Ape Jaw', 'Alien': 'Alien Jaw' };
+      if (_P[_eyesV]) { mouthV = _P[_eyesV]; if (_mi >= 0) attributes[_mi].value = mouthV; } }
     if (vomitOf(tokenId)) {
       mouthV = 'Rainbow Vomit';
       if (_mi >= 0) { attributes[_mi].value = 'Rainbow Vomit'; attributes[_mi].pct = 100 * 12 / SUPPLY; }   // ~12 expected -> ~0.12%

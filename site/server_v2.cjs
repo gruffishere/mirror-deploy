@@ -24,6 +24,7 @@
 // second is the ceiling however clever the queue gets. Raising it is a paid plan, not a code change.
 'use strict';
 const http = require('http'), fs = require('fs'), path = require('path');
+const crypto = require('crypto');
 const E = require(path.join(__dirname, '..', 'facet_engine_v2.cjs'));
 const STORY = require(path.join(__dirname, '..', 'story.cjs'));
 const CLAIMS = require(path.join(__dirname, '..', 'claims.cjs'));
@@ -56,7 +57,41 @@ const base = JSON.parse(fs.readFileSync(BASELINE, 'utf8'));
 // ⚠️ ONE FILE PER ADDRESS. It used to be a single JSON rewritten IN FULL on every uncached read,
 // which is invisible at 8 addresses and 62 KB and becomes 18 MB written per visitor once the 5,000
 // reference wallets are pre-warmed in (`node wrapped/prewarm.cjs`).
+// ⛔ EVERYTHING THAT CHANGES THE PICTURE, IN ONE FINGERPRINT.
+// The stamp carried the reading date and the signed name and nothing else, so when the art engine
+// changed, every card already on disk kept its old filename and went on being served unchanged: the
+// board would show last month's art while the page drew this month's, on two separate pages, and
+// nobody would notice. The card layout counts too. A change to faz1_layouts.js or the stylesheet
+// moves the picture just as surely as a new eye does.
+const ART_VERSION = (() => {
+  const parts = [];
+  const add = p => {
+    try { parts.push(crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex')); }
+    catch { parts.push('missing:' + p); }
+  };
+  add(path.join(__dirname, '..', 'artengine', 'MANIFEST.json'));
+  for (const f of ['faz1_layouts.js', 'facetword.js', 'faz1.css', 'one.html'])
+    add(path.join(__dirname, '..', 'cards', f));
+  return crypto.createHash('sha256').update(parts.join('|')).digest('hex').slice(0, 8);
+})();
+
 fs.mkdirSync(CACHE_DIR, { recursive: true });
+
+// ⚠️ CARDS DRAWN BY AN OLDER ART VERSION ARE DEAD WEIGHT, and they accumulate: every art update
+// leaves a full set behind, ~270kB each. They are matched by the version segment in the filename,
+// which is why the stamp puts it in a fixed position. Only files that are clearly a card AND carry
+// a different version are removed, so nothing else on the disk can be caught by this.
+(function sweepOldCards() {
+  let gone = 0;
+  try {
+    for (const f of fs.readdirSync(CARDPNG.OUT)) {
+      const m = /^0x[0-9a-f]{40}_[0-9]{1,14}-([0-9a-f]{8})/.exec(f);
+      if (!m || m[1] === ART_VERSION) continue;
+      try { fs.unlinkSync(path.join(CARDPNG.OUT, f)); gone++; } catch {}
+    }
+  } catch (e) { console.log('card sweep could not run: ' + e.message); }
+  if (gone) console.log('removed ' + gone + ' card(s) drawn by an older art version');
+})();
 const cache = new Map();
 const cfile = a => path.join(CACHE_DIR, a + '.json');
 (function loadCache() {
@@ -96,7 +131,8 @@ function stampOf(a) {
   const row = cache.get(a);
   if (!row) return null;
   const c = CLAIMED.get(a);
-  return (row.at || '0').replace(/[^0-9]/g, '').slice(0, 14) +
+  // the version sits in a fixed position, so a card drawn by an older one is recognisable on sight
+  return (row.at || '0').replace(/[^0-9]/g, '').slice(0, 14) + '-' + ART_VERSION +
     (c ? '_' + Buffer.from((c.name || '') + '|' + (c.handle || '')).toString('hex').slice(0, 16) : '');
 }
 
@@ -175,7 +211,10 @@ function extras(p) {
 // tier, leave it at 1.
 // ⚠️ AND IT IS BOUNDED. Unbounded, the 60th arrival is told nothing and waits eleven minutes at a
 // spinner, which reads as a dead site. Past the bound they get turned away with a number instead.
-const MAX_QUEUE = 40;
+// ⚠️ RAISED FROM 40 AFTER THE FIRST NIGHT. The busiest minute brought 11 new wallets and the busiest
+// hour 217, and a refusal is worse than a wait: the queue tells you where you are, the wall tells
+// you nothing. Reads are seconds for a normal wallet, so 120 deep is minutes, not hours.
+const MAX_QUEUE = 120;
 let depth = 0;
 const lanes = Array.from({ length: LANES }, () => Promise.resolve());
 let turn = 0;
@@ -329,7 +368,8 @@ http.createServer(async (req, res) => {
   if (u.pathname === '/api/status')
     return json(res, 200, { cached: cache.size, queue: depth, lanes: LANES, maxQueue: MAX_QUEUE,
                             keys: E.hasKeys(),
-                            claimsOpen: claimsOpen(), cardsDrawn: preDrawn,
+                            claimsOpen: claimsOpen(), closesAt: deadlineAt(), signed: CLAIMED.size,
+                            turnedAway: turnedAway, artVersion: ART_VERSION, cardsDrawn: preDrawn,
                             cardsGivenUp: [...preFails.values()].filter(x => x.n >= PRE_GIVE_UP &&
                                             Date.now() - x.at < PRE_COOLDOWN).length,
                             // ⚠️ THE PATHS, BECAUSE "IT SHOULD BE ON THE DISK" IS NOT A MEASUREMENT.
@@ -451,11 +491,18 @@ http.createServer(async (req, res) => {
   if (u.pathname === '/api/admin/claims') {
     if (!ADMIN || u.searchParams.get('token') !== ADMIN) return json(res, 403, { error: 'no' });
     const want = u.searchParams.get('open');
-    if (want === '1') { try { fs.unlinkSync(CLOSED_FLAG); } catch {} }
+    if (want === '1') {
+      try { fs.unlinkSync(CLOSED_FLAG); } catch {}
+      // ?hours=48 opens the door and starts the clock in one action, so the two cannot disagree
+      const hrs = Number(u.searchParams.get('hours') || 0);
+      fs.mkdirSync(path.dirname(DEADLINE_FILE), { recursive: true });
+      if (hrs > 0) fs.writeFileSync(DEADLINE_FILE, new Date(Date.now() + hrs * 3600e3).toISOString());
+      else if (u.searchParams.get('hours') === '0') { try { fs.unlinkSync(DEADLINE_FILE); } catch {} }
+    }
     else if (want === '0') { fs.mkdirSync(path.dirname(CLOSED_FLAG), { recursive: true });
                              fs.writeFileSync(CLOSED_FLAG, new Date().toISOString()); }
     console.log('admin claims -> ' + (claimsOpen() ? 'OPEN' : 'CLOSED'));
-    return json(res, 200, { claimsOpen: claimsOpen() });
+    return json(res, 200, { claimsOpen: claimsOpen(), closesAt: deadlineAt() });
   }
 
   if (u.pathname === '/api/admin/unsign') {
@@ -563,11 +610,12 @@ http.createServer(async (req, res) => {
     }
 
     const fw = allow(ip, 'fresh');
-    if (fw) return json(res, 429, { error: 'that is a lot of new wallets. try again in ' + fw + 's' },
-      { 'Retry-After': fw });
-    if (depth >= MAX_QUEUE)
+    if (fw) { turnedAway.rateLimited++;
+      return json(res, 429, { error: 'that is a lot of new wallets. try again in ' + fw + 's' },
+        { 'Retry-After': fw }); }
+    if (depth >= MAX_QUEUE) { turnedAway.queueFull++;
       return json(res, 503, { error: 'the queue is full, try again shortly', queue: depth },
-        { 'Retry-After': 60 });
+        { 'Retry-After': 60 }); }
 
     const place = depth + 1;
     try {
@@ -632,7 +680,25 @@ const PRE_EVERY = 4000, PRE_GIVE_UP = 3;
 // is a file on the MOUNTED disk on purpose: a restart or a deploy must not quietly reopen it.
 const CLOSED_FLAG = path.join(process.env.MIRROR_LISTS_DIR ||
   path.join(__dirname, '..', 'site', 'lists'), 'claims.closed');
-const claimsOpen = () => !fs.existsSync(CLOSED_FLAG);
+// ⛔ THE DEADLINE CLOSES THE DOOR ITSELF.
+// A countdown that runs out and changes nothing teaches people the next one is theatre too. The
+// server holds the time and refuses on its own, so honouring it is not a thing anyone has to
+// remember to do.
+const DEADLINE_FILE = path.join(path.dirname(CLOSED_FLAG), 'claims.deadline');
+const deadlineAt = () => {
+  try { const t = Date.parse(fs.readFileSync(DEADLINE_FILE, 'utf8').trim()); return isNaN(t) ? null : t; }
+  catch { return null; }
+};
+const claimsOpen = () => {
+  if (fs.existsSync(CLOSED_FLAG)) return false;
+  const d = deadlineAt();
+  return d === null || Date.now() < d;
+};
+
+// ⚠️ REFUSALS ARE INVISIBLE OTHERWISE. reads.jsonl only records reads that HAPPENED, so after the
+// first night I could say the site absorbed 217 wallets in an hour and could NOT say whether anyone
+// was turned away. This counts them.
+let turnedAway = { queueFull: 0, rateLimited: 0, since: new Date().toISOString() };
 
 const preFails = new Map();
 const PRE_COOLDOWN = 10 * 60e3;

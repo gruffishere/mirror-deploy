@@ -132,10 +132,21 @@ const MIRROR_PORTRAIT_V6 = (() => {
       const dEL = Math.hypot(x - anchors.eyeL[0], y - anchors.eyeL[1]);
       const dER = Math.hypot(x - anchors.eyeR[0], y - anchors.eyeR[1]);
       const eyeReach = 38 + p.eye_size_extra * 12;
+      // ⛔⛔ THE ROOT OF A LONG ARGUMENT ABOUT EYES, AND IT LIVES HERE, NOT IN THE EYE PAINTERS.
+      // `b -= 0.85 * t` below darkens the FACE by up to 85% in a disc around each eye anchor. It is the eye
+      // SOCKET, and until 2026-08-26 it was applied to every token unconditionally, whatever eye trait was
+      // on. So "a plain base with an eye drawn on top" was never what was happening: the base already had
+      // two dark hollows burned into its lighting, and an eye painter could only cover part of one.
+      // Whatever it failed to cover stayed on the portrait, which is what gruff kept seeing and describing
+      // exactly right — "göz olmaya çalışan bloklar". It is also why the trait PIECES always looked clean:
+      // Kohl paints a 5x3 block and Big Eyes 3x3, so they bury the hollow instead of sitting in it.
+      // ⇒ An eye that is drawn by an explicit painter turns the socket OFF and gets the plain face it was
+      //   always assumed to have. Eyes that still rely on the field keep it, and nothing about them moves.
+      const socketOff = !!p.eye_socket_off;
       // record the eye offset for the CORE (t>0.6 = kind 'eye') AND a thin outer band (t>0.45) so cellFill can
       // both bite the edge in and poke a few stray blocks out -> organic, broken-up eye instead of a clean disc.
-      if (dEL < eyeReach) { const t = 1 - dEL / eyeReach; b -= 0.85 * t; if (t > 0.45) { eyeDx = x - anchors.eyeL[0]; eyeDy = y - anchors.eyeL[1]; eyeRR = eyeReach; eyeSide = -1; if (t > 0.6) kind = 'eye'; } }
-      if (dER < eyeReach) { const t = 1 - dER / eyeReach; b -= 0.85 * t; if (t > 0.45) { eyeDx = x - anchors.eyeR[0]; eyeDy = y - anchors.eyeR[1]; eyeRR = eyeReach; eyeSide = 1; if (t > 0.6) kind = 'eye'; } }
+      if (dEL < eyeReach) { const t = 1 - dEL / eyeReach; if (!socketOff) b -= 0.85 * t; if (t > 0.45) { eyeDx = x - anchors.eyeL[0]; eyeDy = y - anchors.eyeL[1]; eyeRR = eyeReach; eyeSide = -1; if (t > 0.6) kind = 'eye'; } }
+      if (dER < eyeReach) { const t = 1 - dER / eyeReach; if (!socketOff) b -= 0.85 * t; if (t > 0.45) { eyeDx = x - anchors.eyeR[0]; eyeDy = y - anchors.eyeR[1]; eyeRR = eyeReach; eyeSide = 1; if (t > 0.6) kind = 'eye'; } }
 
       // MOUTH: style-driven expression (universal Mouth trait). No style -> the original fixed shadow (unchanged).
       const mst = p.mouth_style || null;
@@ -1012,6 +1023,7 @@ const MIRROR_PORTRAIT_V6 = (() => {
       accent_color: params.accent_color || '#fcb913',
       block_size:   params.block_size   || 14,
       eye_size_extra:      params.eye_size_extra      || 0,
+      eye_socket_off:      !!params.eye_socket_off,
       brow_intensity:      (params.brow_intensity      != null) ? params.brow_intensity : 0.6,
       mouth_intensity:     (params.mouth_intensity     != null) ? params.mouth_intensity : 0.7,
       mouth_style:         params.mouth_style         || null,   // universal Mouth trait (null = original fixed shadow)

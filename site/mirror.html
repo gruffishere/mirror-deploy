@@ -35,6 +35,16 @@ a{color:inherit}
    text. The FACETS site never puts it on the dark either: its wordmark sits inside a coloured block.
    So the real colour is kept and the ground under it changes, exactly as the site does it. */
 .mark{display:flex;align-items:center;gap:14px;margin-bottom:26px}
+/* the count and the clock, the two honest pressures: something is moving and a door is closing.
+   Neither says anything about what a signature is worth. */
+.ticker{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin:-14px 0 26px;
+  padding:11px 15px;border:1px solid rgba(255,255,255,.14);border-radius:12px;
+  background:rgba(255,255,255,.03);width:fit-content}
+.ticker .n{font:800 15px/1 var(--mono);letter-spacing:.06em;color:#fff;
+  font-variant-numeric:tabular-nums}
+.ticker .l{font:800 10px/1 var(--mono);letter-spacing:.2em;color:#6f6f7c}
+.ticker .sep{color:#3a3a44}
+.ticker.soon .n{color:var(--DEGEN-lit)}
 .wm{background:var(--paper);border-radius:8px;padding:7px 14px 9px;display:inline-block;
   text-decoration:none}   /* it is a link home now, and a link that looks underlined is not a mark */
 .wm b{display:block;font:800 clamp(26px,3.2vw,44px)/.86 var(--disp);letter-spacing:-.05em;
@@ -236,6 +246,11 @@ footer p{margin:0 0 9px;max-width:80ch}
 <div class="wrap">
   <section class="hero">
     <div class="mark"><a class="wm" href="/" title="THE MIRROR"><b>FACETS</b></a><span class="sub">THE MIRROR</span><a class="signedlink" href="/signed">SIGNED WALLETS</a></div>
+    <div class="ticker" id="ticker" hidden>
+      <span class="n" id="tkN">0</span><span class="l">SIGNED</span>
+      <span class="sep">&middot;</span>
+      <span class="l">CLOSES IN</span><span class="n" id="tkT">--:--:--</span>
+    </div>
     <div class="heroin"><div class="col">
     <h1>Who are you<br>on chain?</h1>
     <p class="lede">Paste a wallet. It gets read against <b>5,000 real Ethereum wallets</b> and comes
@@ -348,6 +363,32 @@ async function read(addr) {
     say('could not reach the reader', true);
   }
 }
+
+// THE TICKER.
+// ⚠️ IT DRAWS ONLY WHAT THE SERVER SAYS. The count is CLAIMED.size and the deadline is the file the
+// server closes itself on, so the page cannot show a door that is already shut or a number nobody
+// signed. It hides itself when signing is closed rather than counting down to a past time.
+let tkClosesAt = null;
+function tkPaint() {
+  const box = $("#ticker");
+  if (!tkClosesAt) { box.hidden = true; return; }
+  const left = tkClosesAt - Date.now();
+  if (left <= 0) { box.hidden = true; return; }
+  const h = Math.floor(left / 3600000), m = Math.floor(left / 60000) % 60, sec = Math.floor(left / 1000) % 60;
+  const p = n => String(n).padStart(2, "0");
+  $("#tkT").textContent = p(h) + ":" + p(m) + ":" + p(sec);
+  box.classList.toggle("soon", left < 6 * 3600000);
+  box.hidden = false;
+}
+async function tkPoll() {
+  try {
+    const st = await (await fetch(API + "/api/status")).json();
+    $("#tkN").textContent = st.signed == null ? "0" : st.signed;
+    tkClosesAt = (st.claimsOpen && st.closesAt) ? st.closesAt : null;
+  } catch { }
+  tkPaint();
+}
+tkPoll(); setInterval(tkPoll, 20000); setInterval(tkPaint, 1000);
 
 // ⚠️ SAY WHEN. A reading that is not from today has to admit it, or the page quietly presents an old
 // picture of a wallet that has moved since. Anything read in the last day says nothing, because

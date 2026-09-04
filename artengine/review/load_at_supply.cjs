@@ -14,7 +14,10 @@
 // throws if it did not apply.
 'use strict';
 const fs = require('fs'), path = require('path');
-const MIR = path.join(__dirname, '..', 'mirror_v2');
+// ⚠️ THE ENGINE DIRECTORY IS OVERRIDABLE, so a candidate set of traits can be driven through the REAL
+//    collection (6969, keyed permutation, real owners, every pose) without touching the shipped engine.
+//    Set FACETS_MIRROR_DIR to a copy of mirror_v2. Unset, this is exactly what it always was.
+const MIR = process.env.FACETS_MIRROR_DIR || path.join(__dirname, '..', 'mirror_v2');
 const AP = require(path.join(MIR, 'alloc_perm.js'));
 
 /// `supply` — the working supply (gruff, 2026-08-08: build as if 6969).
