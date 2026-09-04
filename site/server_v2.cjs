@@ -346,6 +346,21 @@ http.createServer(async (req, res) => {
   const u = new URL(req.url, 'http://localhost');
   const ip = clientIp(req);
 
+  // A SHORT LINK IS THE SAME PAGE, REACHED BY A NUMBER.
+  // ⚠️ DIGITS ONLY, which is what keeps it from colliding with anything: every other route on this
+  // server begins with a letter, so /247 can never be mistaken for /signed or /live.
+  // It rewrites the request rather than repeating the page: the unfurl tags, the cache headers and
+  // everything else then come from the one place that already does them.
+  {
+    const seg = u.pathname.slice(1);
+    if (seg.length > 0 && seg.length < 12 && [...seg].every(ch => ch >= '0' && ch <= '9')) {
+      const hit = CLAIMS.addrForId(seg);
+      if (!hit) return json(res, 404, { error: 'no such card' });
+      u.pathname = '/';
+      u.searchParams.set('addr', hit);
+    }
+  }
+
   if (u.pathname === '/' || u.pathname === '/index.html') {
     let page = fs.readFileSync(PAGE, 'utf8');
     // ⚠️ AN INTENT URL CANNOT CARRY AN IMAGE. The only way a shared card reaches a timeline is for the
@@ -627,7 +642,8 @@ http.createServer(async (req, res) => {
       if (!isOwnRenderer(req)) CLAIMS.logRead(addr, { facet: row.profile && row.profile.dominant, cached: true,
                              ens: (row.signals && row.signals.ens) || null });
       return json(res, 200, { ...row, cached: true, resolvedFrom,
-        claimed: CLAIMED.get(addr) || null, claimsOpen: claimsOpen(), mirror: extras(row.profile) });
+        claimed: CLAIMED.get(addr) || null, claimsOpen: claimsOpen(), id: CLAIMS.shortId(addr),
+        mirror: extras(row.profile) });
     }
 
     const fw = allow(ip, 'fresh');
@@ -644,7 +660,8 @@ http.createServer(async (req, res) => {
       if (!isOwnRenderer(req)) CLAIMS.logRead(addr, { facet: out.profile && out.profile.dominant, cached: false,
                              ens: (out.signals && out.signals.ens) || null });
       return json(res, 200, { ...out, resolvedFrom, queuedAt: place,
-        claimed: CLAIMED.get(addr) || null, claimsOpen: claimsOpen(), mirror: extras(out.profile) });
+        claimed: CLAIMED.get(addr) || null, claimsOpen: claimsOpen(), id: CLAIMS.shortId(addr),
+        mirror: extras(out.profile) });
     } catch (e) {
       return json(res, 500, { error: String(e && e.message || e) });
     }

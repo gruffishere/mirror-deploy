@@ -244,6 +244,35 @@ const csvCell = v => {
 };
 const csvOf = (head, rows) => [head.join(',')].concat(rows.map(r => r.map(csvCell).join(','))).join(String.fromCharCode(10)) + String.fromCharCode(10);
 
+// SHORT LINKS.
+// mirror.thefacets.art/247 instead of forty hex characters, because a shared link is read by people
+// and a 42 character address is not.
+// ⚠️ APPEND ONLY, like every other list here. A rewritten JSON blob can be truncated by a restart
+// halfway through and take every id with it; a line that is already on disk cannot be.
+// ⚠️ The number is assigned ON FIRST READ and never changes, so a link someone posted a month ago
+// still points at the same wallet.
+const IDS = path.join(DIR, 'ids.jsonl');
+const byAddr = new Map(), byId = new Map();
+let nextId = 1;
+(function loadIds() {
+  for (const r of readJsonl(IDS)) {
+    const a = String(r.addr || '').toLowerCase(), n = Number(r.id);
+    if (!a || !n) continue;
+    byAddr.set(a, n); byId.set(n, a);
+    if (n >= nextId) nextId = n + 1;
+  }
+})();
+
+function shortId(addr) {
+  const a = String(addr || '').toLowerCase();
+  if (!/^0x[0-9a-f]{40}$/.test(a)) return null;
+  if (byAddr.has(a)) return byAddr.get(a);
+  const n = nextId++;
+  byAddr.set(a, n); byId.set(n, a);
+  append(IDS, { id: n, addr: a, t: new Date().toISOString() });
+  return n;
+}
+const addrForId = n => byId.get(Number(n)) || null;
 function readsCsv() {
   const rows = readJsonl(READS).map(r => [r.t, r.addr, r.facet || '', r.cached ? 'cached' : 'fresh']);
   return { csv: csvOf(['read_at', 'address', 'facet', 'source'], rows), count: rows.length };
@@ -277,4 +306,5 @@ function signedCsv() {
 
 module.exports = { MESSAGE, issueNonce, claim, stats, fcfsCsv, verifyAll, signedLatest, unsign,
                    readsCsv, uniqueReadsCsv, signedCsv,
+                   shortId, addrForId, DIR,
                    logRead, cleanText, cleanHandle, EXCLUDED, READS, SIGNED };

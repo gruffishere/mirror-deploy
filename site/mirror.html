@@ -438,8 +438,8 @@ function drawClaim() {
     // earned. It reads as a fact now, and the owner asks for the boxes.
     const who = TYPED.handle ? '@' + TYPED.handle : (TYPED.name || 'this wallet');
     c.innerHTML = '<h3>SIGNED</h3>' +
-      '<p>Signed by <b style="color:#fff">' + esc(who) + '</b>. This wallet is on the list and its ' +
-      'card holds a ticket.</p>' +
+      '<p>Signed by <b style="color:#fff">' + esc(who) + '</b>. Their card holds a ticket. ' +
+      'What it turns into, nobody is saying.</p>' +
       // ⚠️ NOT WHILE SIGNING IS CLOSED. UPDATE posts to /api/claim, which now refuses, so offering
       // it would be a button that fails: the owner would think their edit was rejected rather than
       // that the door is shut.
@@ -460,13 +460,15 @@ function drawClaim() {
     c.innerHTML = '<h3>PUT YOUR NAME ON IT</h3>' +
       "<p>Anyone can read anyone’s wallet, so a name only goes on a card the owner signed for. " +
       'Signing costs no gas and moves nothing.</p>' +
-      // ⚠️ THE PRIZE IS DELIBERATELY NOT NAMED. gruff wants the ticket to be a surprise. One concrete
-      // thing stays, on purpose: that signing puts you on the list. Curiosity is a reason to read the
-      // paragraph; it is not on its own a reason to connect a wallet and sign a message.
+      // ⛔ IT PROMISES NOTHING, AND SAYS SO.
+      // The line before this said 'you are on the list either way', which IS a promise: it names a
+      // list and puts the reader on it. gruff is posting that the signature guarantees nothing, and
+      // a page that quietly says otherwise is the contradiction someone screenshots. The reason to
+      // sign here is the one thing that is actually true: it puts your name on your own card.
       '<p class="deal">Enter your name and X handle and sign with your wallet, and your card gets a ' +
-      '<b>ticket</b>. A ticket to what? To whatever <span class=\"wm sm\"><b>FACETS</b></span> has coming. ' +
-      'You are on the list either way. Which list, GTD or FCFS, we are not saying yet. Don’t ' +
-      'think about it too hard: sign, wait, and it might turn out to be you.</p>' +
+      '<b>ticket</b>. A ticket to what? Could be something. Could be nothing at all. We are ' +
+      'promising you exactly nothing here: no list, no spot, no guarantee. Sign it because you want ' +
+      'your name on your own card. If it turns into something later, you were already here.</p>' +
       '<div class="fields">' +
         '<input id="nm" maxlength="24" placeholder="name">' +
         '<input id="hd" maxlength="16" placeholder="@handle">' +
@@ -515,8 +517,10 @@ async function sign() {
     const el = document.createElement('div');
     el.className = 'ok';
     el.innerHTML = '<div class="tick">&#10003;</div><div class="txt">' +
-      '<b>Signed.</b> You are on the list, and your card holds a <b>ticket</b>. What it is for, you ' +
-      'will find out. Your name is on the card now. ' +
+      // ⚠️ NO LIST HERE EITHER. The paragraph above stopped promising one; a confirmation that says
+      // 'you are on the list' would put it straight back.
+      '<b>Signed.</b> Your name is on the card and your card holds a <b>ticket</b>. What it turns ' +
+      'into, nobody is saying. ' +
       '<a href="/signed">See it on the board</a>.</div>';
     c.appendChild(el);
   } catch (e) {
@@ -684,14 +688,18 @@ $('#tweet').onclick = () => {
   // It named a facet and gave nobody a way to reach the site, so every share was a dead end and
   // no card ever unfurled. The page already emits og:image for any address it has read, pointing
   // at that wallet's own card, so the URL carries the picture with it.
-  const url = location.origin + '/?addr=' + encodeURIComponent(ADDR);
-  const score = Math.round(100 * p.axes[p.dominant]);
-  const mix = m.near === 0 ? 'Nobody in 5,000 shares my mix.'
-            : m.near ? m.near + ' of 5,000 share my mix.' : '';
-  const line = 'I am ' + p.dominant + '. ' + score + '.' +
-    (mix ? '\n\n' + mix : '') + '\n\nwho are you on chain?\n' + url;
-  // ⚠️ AN ANCHOR CLICK, NOT window.open. A popup opened from script is blocked often enough on
-  // mobile that the button simply did nothing, which is what gruff saw.
+  // ⚠️ THE SHORT LINK WHEN THERE IS ONE. Forty hex characters in a tweet is noise nobody reads, and
+  // it pushes the card preview down. DATA.id is assigned on first read and never changes, so a link
+  // posted today still resolves in a year.
+  const url = location.origin + (DATA.id ? '/' + DATA.id : '/?addr=' + encodeURIComponent(ADDR));
+  const facet = p.dominant.charAt(0) + p.dominant.slice(1).toLowerCase();
+  // ⚠️ BUILT WITHOUT ESCAPES ON PURPOSE. Every backslash-n written into this file from a shell has
+  // come out the other side as a real line break inside the string literal, three times now.
+  const BR = String.fromCharCode(10, 10);
+  const line = 'The chain says I am a ' + facet + '.' + BR +
+    'Who are you? @facetsart' + BR + url;
+  // ⚠️ AN ANCHOR CLICK, NOT window.open, which mobile blocks often enough that the button did
+  // nothing at all.
   const a = document.createElement('a');
   a.href = 'https://x.com/intent/post?text=' + encodeURIComponent(line);
   a.target = '_blank'; a.rel = 'noopener';
