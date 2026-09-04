@@ -35,21 +35,22 @@ a{color:inherit}
    text. The FACETS site never puts it on the dark either: its wordmark sits inside a coloured block.
    So the real colour is kept and the ground under it changes, exactly as the site does it. */
 .mark{display:flex;align-items:center;gap:14px;margin-bottom:26px}
-/* the count and the clock, the two honest pressures: something is moving and a door is closing.
-   Neither says anything about what a signature is worth. */
-.ticker{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin:-14px 0 26px;
-  padding:11px 15px;border:1px solid rgba(255,255,255,.14);border-radius:12px;
-  background:rgba(255,255,255,.03);width:fit-content}
-.ticker .n{font:800 15px/1 var(--mono);letter-spacing:.06em;color:#fff;
-  font-variant-numeric:tabular-nums}
-.ticker .l{font:800 10px/1 var(--mono);letter-spacing:.2em;color:#6f6f7c}
-.ticker .sep{color:#3a3a44}
-.ticker.soon .n{color:var(--DEGEN-lit)}
-/* ⛔ display:flex ABOVE BEATS THE hidden ATTRIBUTE, which is only display:none from the browser's
-   own stylesheet. So the box stayed on screen showing --:--:-- while signing was closed, and the
-   test that was supposed to catch it read the ATTRIBUTE rather than what was on the screen. */
-.ticker[hidden]{display:none}
-.wm{background:var(--paper);border-radius:8px;padding:7px 14px 9px;display:inline-block;
+/* THE CLOCK, PINNED TO THE TOP OF EVERY PAGE.
+   ⚠️ display is set here, so [hidden] must be given a display of its own or the attribute does
+   nothing: that is exactly how it stayed on screen showing --:--:-- while signing was closed. */
+.tkbar{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;justify-content:center;
+  pointer-events:none;padding:10px 12px}
+.tkbar[hidden]{display:none}
+.tkbar .in{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;justify-content:center;
+  padding:9px 16px;border-radius:999px;border:1px solid rgba(226,59,109,.55);
+  background:rgba(28,8,14,.92);backdrop-filter:blur(8px);
+  box-shadow:0 6px 24px rgba(0,0,0,.5)}
+.tkbar .n{font:800 14px/1 var(--mono);letter-spacing:.05em;color:#fff;font-variant-numeric:tabular-nums}
+.tkbar .l{font:800 9.5px/1 var(--mono);letter-spacing:.2em;color:#e88ba4}
+.tkbar .sep{color:#7a3a4c}
+.tkbar .t{color:var(--DEGEN-lit)}
+/* the page needs room under a bar that floats over it */
+body.hastk{padding-top:52px}.wm{background:var(--paper);border-radius:8px;padding:7px 14px 9px;display:inline-block;
   text-decoration:none}   /* it is a link home now, and a link that looks underlined is not a mark */
 .wm b{display:block;font:800 clamp(26px,3.2vw,44px)/.86 var(--disp);letter-spacing:-.05em;
   color:#0101ef}
@@ -250,11 +251,11 @@ footer p{margin:0 0 9px;max-width:80ch}
 <div class="wrap">
   <section class="hero">
     <div class="mark"><a class="wm" href="/" title="THE MIRROR"><b>FACETS</b></a><span class="sub">THE MIRROR</span><a class="signedlink" href="/signed">SIGNED WALLETS</a></div>
-    <div class="ticker" id="ticker" hidden>
+    <div class="tkbar" id="tkbar" hidden><div class="in">
       <span class="n" id="tkN">0</span><span class="l">SIGNED</span>
       <span class="sep">&middot;</span>
-      <span class="l">CLOSES IN</span><span class="n" id="tkT">--:--:--</span>
-    </div>
+      <span class="l">CLOSES IN</span><span class="n t" id="tkT">--:--:--</span>
+    </div></div>
     <div class="heroin"><div class="col">
     <h1>Who are you<br>on chain?</h1>
     <p class="lede">Paste a wallet. It gets read against <b>5,000 real Ethereum wallets</b> and comes
@@ -368,28 +369,27 @@ async function read(addr) {
   }
 }
 
-// THE TICKER.
-// ⚠️ IT DRAWS ONLY WHAT THE SERVER SAYS. The count is CLAIMED.size and the deadline is the file the
-// server closes itself on, so the page cannot show a door that is already shut or a number nobody
-// signed. It hides itself when signing is closed rather than counting down to a past time.
+// THE CLOCK. It draws only what the server says: the count is the signed list and the deadline is
+// the file the server closes itself on, so the page cannot show a door that is already shut.
 let tkClosesAt = null;
 function tkPaint() {
-  const box = $("#ticker");
-  if (!tkClosesAt) { box.hidden = true; return; }
+  const box = document.getElementById("tkbar");
+  if (!box) return;
+  const show = !!tkClosesAt && (tkClosesAt - Date.now()) > 0;
+  box.hidden = !show;
+  document.body.classList.toggle("hastk", show);
+  if (!show) return;
   const left = tkClosesAt - Date.now();
-  if (left <= 0) { box.hidden = true; return; }
   const h = Math.floor(left / 3600000), m = Math.floor(left / 60000) % 60, sec = Math.floor(left / 1000) % 60;
   const p = n => String(n).padStart(2, "0");
-  $("#tkT").textContent = p(h) + ":" + p(m) + ":" + p(sec);
-  box.classList.toggle("soon", left < 6 * 3600000);
-  box.hidden = false;
+  document.getElementById("tkT").textContent = p(h) + ":" + p(m) + ":" + p(sec);
 }
 async function tkPoll() {
   try {
-    const st = await (await fetch(API + "/api/status")).json();
-    $("#tkN").textContent = st.signed == null ? "0" : st.signed;
+    const st = await (await fetch("/api/status")).json();
+    document.getElementById("tkN").textContent = st.signed == null ? "0" : st.signed;
     tkClosesAt = (st.claimsOpen && st.closesAt) ? st.closesAt : null;
-  } catch { }
+  } catch (e) { }
   tkPaint();
 }
 tkPoll(); setInterval(tkPoll, 20000); setInterval(tkPaint, 1000);

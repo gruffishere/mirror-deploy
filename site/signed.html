@@ -43,8 +43,25 @@ h1{font:900 clamp(30px,4.6vw,60px)/1 var(--disp);letter-spacing:-.045em;margin:3
 .tile .hd{font:600 12.5px/1 var(--mono);color:#6f6f7c}
 .tile .fc{margin-left:auto;font:800 10px/1 var(--mono);letter-spacing:.14em}
 .empty{color:#6f6f7c;padding:40px 0}
+/* THE CLOCK, PINNED TO THE TOP OF EVERY PAGE.
+   ⚠️ display is set here, so [hidden] must be given a display of its own or the attribute does
+   nothing: that is exactly how it stayed on screen showing --:--:-- while signing was closed. */
+.tkbar{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;justify-content:center;
+  pointer-events:none;padding:10px 12px}
+.tkbar[hidden]{display:none}
+.tkbar .in{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;justify-content:center;
+  padding:9px 16px;border-radius:999px;border:1px solid rgba(226,59,109,.55);
+  background:rgba(28,8,14,.92);backdrop-filter:blur(8px);
+  box-shadow:0 6px 24px rgba(0,0,0,.5)}
+.tkbar .n{font:800 14px/1 var(--mono);letter-spacing:.05em;color:#fff;font-variant-numeric:tabular-nums}
+.tkbar .l{font:800 9.5px/1 var(--mono);letter-spacing:.2em;color:#e88ba4}
+.tkbar .sep{color:#7a3a4c}
+.tkbar .t{color:var(--DEGEN-lit)}
+/* the page needs room under a bar that floats over it */
+body.hastk{padding-top:52px}
 /* stated on the board too: this is the page people are sent to, and a list nobody can join any
    more should say so rather than leaving them looking for the button. */
+.closed[hidden]{display:none}
 .closed{display:inline-block;margin:0 0 30px;font:800 10.5px/1 var(--mono);letter-spacing:.2em;
   color:#9a9aa8;border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:9px 15px}
 /* the card that never arrived says so, rather than showing the browser's torn-paper icon */
@@ -56,6 +73,11 @@ h1{font:900 clamp(30px,4.6vw,60px)/1 var(--disp);letter-spacing:-.045em;margin:3
   color:#4a4a55;aspect-ratio:16/9}
 </style></head><body>
 
+<div class="tkbar" id="tkbar" hidden><div class="in">
+  <span class="n" id="tkN">0</span><span class="l">SIGNED</span>
+  <span class="sep">&middot;</span>
+  <span class="l">CLOSES IN</span><span class="n t" id="tkT">--:--:--</span>
+</div></div>
 <div class="wrap">
   <div class="top">
     <a class="wm" href="/" title="THE MIRROR"><b>FACETS</b></a><span class="sub">THE MIRROR</span>
@@ -76,6 +98,30 @@ const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g,
 const short = a => a.slice(0, 6) + '…' + a.slice(-4);
 
 let ARTV = '0';
+// THE CLOCK. It draws only what the server says: the count is the signed list and the deadline is
+// the file the server closes itself on, so the page cannot show a door that is already shut.
+let tkClosesAt = null;
+function tkPaint() {
+  const box = document.getElementById("tkbar");
+  if (!box) return;
+  const show = !!tkClosesAt && (tkClosesAt - Date.now()) > 0;
+  box.hidden = !show;
+  document.body.classList.toggle("hastk", show);
+  if (!show) return;
+  const left = tkClosesAt - Date.now();
+  const h = Math.floor(left / 3600000), m = Math.floor(left / 60000) % 60, sec = Math.floor(left / 1000) % 60;
+  const p = n => String(n).padStart(2, "0");
+  document.getElementById("tkT").textContent = p(h) + ":" + p(m) + ":" + p(sec);
+}
+async function tkPoll() {
+  try {
+    const st = await (await fetch("/api/status")).json();
+    document.getElementById("tkN").textContent = st.signed == null ? "0" : st.signed;
+    tkClosesAt = (st.claimsOpen && st.closesAt) ? st.closesAt : null;
+  } catch (e) { }
+  tkPaint();
+}
+tkPoll(); setInterval(tkPoll, 20000); setInterval(tkPaint, 1000);
 fetch('/api/status').then(r => r.json())
   .then(st => { ARTV = st.artVersion || '0';
                 if (st.claimsOpen === false) document.getElementById('closed').hidden = false; })
