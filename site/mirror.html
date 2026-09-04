@@ -45,6 +45,10 @@ a{color:inherit}
 .ticker .l{font:800 10px/1 var(--mono);letter-spacing:.2em;color:#6f6f7c}
 .ticker .sep{color:#3a3a44}
 .ticker.soon .n{color:var(--DEGEN-lit)}
+/* ⛔ display:flex ABOVE BEATS THE hidden ATTRIBUTE, which is only display:none from the browser's
+   own stylesheet. So the box stayed on screen showing --:--:-- while signing was closed, and the
+   test that was supposed to catch it read the ATTRIBUTE rather than what was on the screen. */
+.ticker[hidden]{display:none}
 .wm{background:var(--paper);border-radius:8px;padding:7px 14px 9px;display:inline-block;
   text-decoration:none}   /* it is a link home now, and a link that looks underlined is not a mark */
 .wm b{display:block;font:800 clamp(26px,3.2vw,44px)/.86 var(--disp);letter-spacing:-.05em;
