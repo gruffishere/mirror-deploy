@@ -85,8 +85,11 @@ fs.mkdirSync(CACHE_DIR, { recursive: true });
   let gone = 0;
   try {
     for (const f of fs.readdirSync(CARDPNG.OUT)) {
-      const m = /^0x[0-9a-f]{40}_[0-9]{1,14}-([0-9a-f]{8})/.exec(f);
-      if (!m || m[1] === ART_VERSION) continue;
+      // ⚠️ NOT 'a different version' BUT 'not THIS version', which is what catches the cards drawn
+      // before the stamp carried a version at all. Those have no version segment to compare, so the
+      // first sweep skipped every one of them and 341 files would have sat there forever.
+      if (!/^0x[0-9a-f]{40}_/.test(f)) continue;         // not a card at all, leave it alone
+      if (f.indexOf('-' + ART_VERSION) >= 0) continue;   // current, keep
       try { fs.unlinkSync(path.join(CARDPNG.OUT, f)); gone++; } catch {}
     }
   } catch (e) { console.log('card sweep could not run: ' + e.message); }
