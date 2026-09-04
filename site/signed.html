@@ -121,7 +121,6 @@ body.hastk{padding-top:52px}
   <p class="closed" id="closed" hidden>SIGNING IS CLOSED &middot; THIS LIST IS SETTLED</p>
 
   <div class="filters" id="filters">
-    <div class="row sort" id="sorts"></div>
     <div class="row facet" id="facets"></div>
   </div>
   <div class="grid" id="grid"></div>
@@ -169,13 +168,14 @@ fetch('/api/status').then(r => r.json())
 
 // THE BOARD IS FILTERED IN THE PAGE, not asked for again: every row is already here, and a sort is
 // a comparison, not a request.
-let ROWS = [], SORT = 'new', FACET = '';
+// ⚠️ NEWEST, ALWAYS. The sort switch is gone: the only other order anyone asked for was most read,
+// and the wallets that would actually top that list are the three on the front page, which have
+// not signed and do not belong on a board of people who did.
+let ROWS = [], FACET = '';
 function draw() {
   let rows = ROWS.slice();
   if (FACET) rows = rows.filter(r => r.facet === FACET);
-  rows.sort(SORT === 'reads'
-    ? (a, b) => (b.reads || 0) - (a.reads || 0) || (a.t < b.t ? 1 : -1)
-    : (a, b) => (a.t < b.t ? 1 : -1));
+  rows.sort((a, b) => (a.t < b.t ? 1 : -1));
   document.getElementById('count').textContent =
     rows.length + (rows.length === 1 ? ' WALLET' : ' WALLETS') + (FACET ? ' · ' + FACET : '');
   document.getElementById('grid').innerHTML = rows.length ? rows.map(r =>
@@ -191,9 +191,6 @@ function draw() {
     '</div>').join('') : '<p class="empty">Nobody here yet.</p>';
 }
 function chips() {
-  document.getElementById('sorts').innerHTML =
-    [['new', 'NEWEST'], ['reads', 'MOST READ']].map(([k, l]) =>
-      '<b data-sort="' + k + '"' + (SORT === k ? ' class="on"' : '') + '>' + l + '</b>').join('');
   const counts = {};
   ROWS.forEach(r => { if (r.facet) counts[r.facet] = (counts[r.facet] || 0) + 1; });
   // ⚠️ the chip carries the facet's own colour, the same one the card and the bars use. currentColor
@@ -210,7 +207,6 @@ function chips() {
 document.addEventListener('click', e => {
   const b = e.target.closest && e.target.closest('.filters b');
   if (!b) return;
-  if (b.dataset.sort != null) SORT = b.dataset.sort;
   if (b.dataset.facet != null) FACET = b.dataset.facet;
   chips(); draw();
 });
