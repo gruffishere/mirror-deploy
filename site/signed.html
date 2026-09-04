@@ -75,8 +75,10 @@ const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g,
   c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const short = a => a.slice(0, 6) + '…' + a.slice(-4);
 
+let ARTV = '0';
 fetch('/api/status').then(r => r.json())
-  .then(st => { if (st.claimsOpen === false) document.getElementById('closed').hidden = false; })
+  .then(st => { ARTV = st.artVersion || '0';
+                if (st.claimsOpen === false) document.getElementById('closed').hidden = false; })
   .catch(() => {});
 
 fetch('/api/signed').then(r => r.json()).then(j => {
@@ -97,7 +99,7 @@ fetch('/api/signed').then(r => r.json()).then(j => {
   document.getElementById('grid').innerHTML = j.rows.map(r =>
     '<div class="tile">' +
       '<img loading="lazy" alt="" data-full="1" data-tries="0" ' +
-        'src="/api/card.png?addr=' + encodeURIComponent(r.addr) + '">' +
+        'src="/api/card.png?addr=' + encodeURIComponent(r.addr) + '&v=' + encodeURIComponent(ARTV) + '">' +
       '<div class="who">' +
         '<span class="nm">' + esc(r.name || short(r.addr)) + '</span>' +
         (r.handle ? '<span class="hd">@' + esc(r.handle) + '</span>' : '') +

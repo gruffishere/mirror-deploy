@@ -281,6 +281,19 @@ const clientIp = req =>
   String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() ||
   req.socket.remoteAddress || 'unknown';
 
+// ⛔ THE RENDERER IS NOT A VISITOR.
+// Drawing a card points a headless browser at this server's own loopback address, and that page
+// reads the wallet like any visitor would. So redrawing 242 cards after an art change wrote 242
+// 'visits' into reads.jsonl, which is one of the two lists this whole exercise exists to keep. It
+// looked like a crowd arriving before anything had been posted.
+// ⚠️ NOT SPOOFABLE FROM OUTSIDE: anything arriving over the internet comes through the platform's
+// proxy, which always sets x-forwarded-for. Only a connection made from inside the box has none.
+const isOwnRenderer = req => {
+  if (req.headers['x-forwarded-for']) return false;
+  const a = String(req.socket.remoteAddress || '');
+  return a === '::1' || a.indexOf('127.') === 0 || a.indexOf('::ffff:127.') === 0;
+};
+
 const send = (res, code, body, type, extra) => {
   // ⚠️ CORS, because THE MIRROR is read from the FACETS site on another origin. Without it the fetch
   // is blocked by the browser and the failure looks like a dead API rather than a missing header.
@@ -351,7 +364,12 @@ http.createServer(async (req, res) => {
       const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
       const title = esc(who) + ' is ' + row.profile.dominant + ' — FACETS: THE MIRROR';
       const desc = 'Read against 5,000 real Ethereum wallets. Who are you on chain?';
-      const img = origin + '/api/card.png?addr=' + q;
+      // ⛔ THE VERSION HAS TO BE IN THE URL. The card is served immutable for a year, which is
+      // right for a fixed picture and wrong for a URL whose picture can change: after an art
+      // update every browser that had seen a card went on showing the old one and never asked
+      // again. The address alone is not the identity of the image; the address AND the art that
+      // drew it are.
+      const img = origin + '/api/card.png?addr=' + q + '&v=' + ART_VERSION;
       page = page.replace('</head>',
         '<meta property="og:title" content="' + title + '">' +
         '<meta property="og:description" content="' + desc + '">' +
@@ -606,7 +624,7 @@ http.createServer(async (req, res) => {
     // a cached answer costs nothing, so it never queues and never touches the uncached ration
     if (!refresh && cache.has(addr)) {
       const row = cache.get(addr);
-      CLAIMS.logRead(addr, { facet: row.profile && row.profile.dominant, cached: true,
+      if (!isOwnRenderer(req)) CLAIMS.logRead(addr, { facet: row.profile && row.profile.dominant, cached: true,
                              ens: (row.signals && row.signals.ens) || null });
       return json(res, 200, { ...row, cached: true, resolvedFrom,
         claimed: CLAIMED.get(addr) || null, claimsOpen: claimsOpen(), mirror: extras(row.profile) });
@@ -623,7 +641,7 @@ http.createServer(async (req, res) => {
     const place = depth + 1;
     try {
       const out = await queue(() => read(addr, refresh));
-      CLAIMS.logRead(addr, { facet: out.profile && out.profile.dominant, cached: false,
+      if (!isOwnRenderer(req)) CLAIMS.logRead(addr, { facet: out.profile && out.profile.dominant, cached: false,
                              ens: (out.signals && out.signals.ens) || null });
       return json(res, 200, { ...out, resolvedFrom, queuedAt: place,
         claimed: CLAIMED.get(addr) || null, claimsOpen: claimsOpen(), mirror: extras(out.profile) });
