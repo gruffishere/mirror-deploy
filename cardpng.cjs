@@ -69,12 +69,28 @@ function shoot(url, file) {
 }
 
 // stamp = anything about this wallet that changes the picture. Passed in by the server.
+// ⛔ A WALLET KEEPS ONE CARD, NOT ONE PER READ.
+// The stamp carries the read count so the badge stays true, which means the filename changes every
+// time anyone opens a wallet. Without this the store grows by a 300kB file per read: it filled the
+// volume in an afternoon, and once the disk was full EVERY render failed with 'produced nothing
+// usable' while the already-written cards still served fine. Writes broke, reads did not, so the
+// site looked half alive.
+function dropOlder(addr, keep) {
+  const a = String(addr).toLowerCase();
+  try {
+    for (const f of fs.readdirSync(OUT)) {
+      if (f.indexOf(a + '_') !== 0 || f === keep) continue;
+      try { fs.unlinkSync(path.join(OUT, f)); } catch {}
+    }
+  } catch (e) { console.log('could not clear older cards: ' + e.message); }
+}
+
 async function cardPng(origin, addr, stamp) {
   if (!chrome) throw new Error('no browser found to render with; set MIRROR_CHROME');
   const file = path.join(OUT, keyOf(addr, stamp));
   if (fs.existsSync(file) && fs.statSync(file).size > 2000) return file;
   const url = origin + '/cards/one.html?addr=' + encodeURIComponent(addr);
-  return queue(() => shoot(url, file));
+  return queue(() => shoot(url, file)).then(f => { dropOlder(addr, keyOf(addr, stamp)); return f; });
 }
 
 // ⚠️ EXPORTED so the server can ask whether a card already exists WITHOUT the two of them keeping

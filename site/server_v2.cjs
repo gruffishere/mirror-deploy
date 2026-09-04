@@ -417,6 +417,18 @@ http.createServer(async (req, res) => {
                             // and the board goes blank again. This makes that answerable from outside
                             // in one request, instead of being discovered by a blank board.
                             paths: { cards: CARDPNG.OUT, cache: CACHE_DIR, lists: CLAIMS.DIR || null },
+                            // ⚠️ a full disk broke every render while the site went on serving what
+                            // it already had, so nothing looked wrong from outside. Now it is one
+                            // request away.
+                            diskMB: (() => {
+                              let b = 0;
+                              const walk = d => { try { for (const f of fs.readdirSync(d, { withFileTypes: true })) {
+                                const p = path.join(d, f.name);
+                                if (f.isDirectory()) walk(p); else { try { b += fs.statSync(p).size; } catch {} }
+                              } } catch {} };
+                              walk(path.dirname(CARDPNG.OUT));
+                              return Math.round(b / 1048576);
+                            })(),
                             cardsOnDisk: (() => { try { return fs.readdirSync(CARDPNG.OUT).length; } catch { return -1; } })() });
 
   // the mascot sprite and its metadata, copied from the FACETS site so the Mirror can carry the same
