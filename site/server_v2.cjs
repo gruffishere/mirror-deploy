@@ -489,7 +489,21 @@ http.createServer(async (req, res) => {
                               walk(path.dirname(CARDPNG.OUT));
                               return Math.round(b / 1048576);
                             })(),
-                            cardsOnDisk: (() => { try { return fs.readdirSync(CARDPNG.OUT).length; } catch { return -1; } })() });
+                            cardsOnDisk: (() => { try { return fs.readdirSync(CARDPNG.OUT).length; } catch { return -1; } })(),
+                            // ⛔ HEADROOM, NOT USAGE. diskMB above adds up what is stored, which is
+                            // what a full volume also looks like: 92MB used, and no way to tell
+                            // whether that is 9% or 100%. A full disk fails EVERY render while the
+                            // cards already written go on serving, so the site looks alive and
+                            // simply stops gaining cards. Both filesystems matter: the volume holds
+                            // the cards, and Chrome builds a fresh profile under tmp for every
+                            // single render.
+                            freeMB: (() => {
+                              const of = p => { try { const t = fs.statfsSync(p);
+                                return { freeMB: Math.round(t.bavail * t.bsize / 1048576),
+                                         totalMB: Math.round(t.blocks * t.bsize / 1048576) }; }
+                                catch (e) { return { error: e.message.slice(0, 40) }; } };
+                              return { data: of(path.dirname(CARDPNG.OUT)), tmp: of(require('os').tmpdir()) };
+                            })() });
 
   // the mascot sprite and its metadata, copied from the FACETS site so the Mirror can carry the same
   // token #1066 that watches you there
