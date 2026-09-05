@@ -151,7 +151,9 @@ const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g,
   c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const short = a => a.slice(0, 6) + '…' + a.slice(-4);
 
-let ARTV = '0';
+// ⚠️ FROM THE PAGE, NOT FROM A FETCH. This used to be filled in by /api/status, which raced the
+// signed list: when the list won, every tile asked for &v=0 and cached that for a year.
+let ARTV = window.ART_VERSION || '0';
 // THE CLOCK. It draws only what the server says: the count is the signed list and the deadline is
 // the file the server closes itself on, so the page cannot show a door that is already shut.
 let tkClosesAt = null;
@@ -186,7 +188,8 @@ async function tkPoll() {
 }
 tkPoll(); setInterval(tkPoll, 20000); setInterval(tkPaint, 1000);
 fetch('/api/status').then(r => r.json())
-  .then(st => { ARTV = st.artVersion || '0';
+  // never downgrade what the page was already told: a failed status must not reset it
+  .then(st => { ARTV = st.artVersion || ARTV;
                 if (st.claimsOpen === false) document.getElementById('closed').hidden = false; })
   .catch(() => {});
 

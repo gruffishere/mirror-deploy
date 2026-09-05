@@ -13,7 +13,9 @@ html,body{margin:0;padding:0;background:#000;overflow:hidden}
 <script>
 // the art must be INLINE for the export, or the rasteriser races the network and ships a card with a
 // hole where the piece goes. The endpoint hands it over already fetched.
-window.FAZ1_ART = (a, f) => '/api/art.svg?addr=' + a + '&facet=' + f;
+// the same rule as the card page: the version is part of the picture's identity
+window.FAZ1_ART = (a, f) =>
+  '/api/art.svg?addr=' + a + '&facet=' + f + '&v=' + (window.ART_VERSION || '0');
 </script>
 <script src="/cards/facetword.js"></script>
 <script src="/cards/faz1_layouts.js"></script>

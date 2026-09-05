@@ -321,7 +321,10 @@ footer p{margin:0 0 9px;max-width:80ch}
 
 <script>
 // the live page draws every address from the API; the lab keeps its five local PNGs
-window.FAZ1_ART = (a, f) => "/api/art.svg?addr=" + a + "&facet=" + f;
+// ⛔ THE VERSION BELONGS IN THIS URL. The piece is served immutable for a year, so without it a
+// browser that saw a card once keeps drawing that piece forever, however the art changes.
+window.FAZ1_ART = (a, f) =>
+  "/api/art.svg?addr=" + a + "&facet=" + f + "&v=" + (window.ART_VERSION || "0");
 </script>
 <script src="/cards/facetword.js"></script>
 <script src="/cards/faz1_layouts.js"></script>

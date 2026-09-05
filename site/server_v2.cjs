@@ -80,6 +80,18 @@ const ART_VERSION = (() => {
   return crypto.createHash('sha256').update(parts.join('|')).digest('hex').slice(0, 8);
 })();
 
+// ⛔ EVERY PAGE IS TOLD THE ART VERSION, IN ITS OWN HTML, BEFORE ANY SCRIPT RUNS.
+// Two separate image URLs went stale for the same reason and neither was caught by the other's
+// fix. /api/card.png carried a version the board had to FETCH from /api/status first, so whichever
+// of the two requests lost the race left every tile asking for &v=0 and caching that for a year.
+// /api/art.svg, which is the piece on the card page, carried no version at all: after Adam
+// Weitsman's piece was repinned the server served the new one correctly and gruff's browser went
+// on showing the old one out of its own cache. Both are immutable for a year, which is right for
+// a fixed picture and only works when the URL changes as the picture does.
+// Injected server-side so it is a fact the page has, not one it has to go and ask for.
+const withArtVersion = html => String(html).replace('</head>',
+  '<script>window.ART_VERSION="' + ART_VERSION + '";</scr' + 'ipt></head>');
+
 fs.mkdirSync(CACHE_DIR, { recursive: true });
 
 // ⚠️ CARDS DRAWN BY AN OLDER ART VERSION ARE DEAD WEIGHT, and they accumulate: every art update
@@ -388,7 +400,7 @@ http.createServer(async (req, res) => {
   }
 
   if (u.pathname === '/' || u.pathname === '/index.html') {
-    let page = fs.readFileSync(PAGE, 'utf8');
+    let page = withArtVersion(fs.readFileSync(PAGE, 'utf8'));
     // ⚠️ AN INTENT URL CANNOT CARRY AN IMAGE. The only way a shared card reaches a timeline is for the
     // LINK to advertise one, so a /?addr= request gets its own og tags pointing at that wallet's PNG.
     // ⚠️ It needs a PUBLIC host: X's crawler cannot fetch localhost, so this does nothing until the
@@ -558,7 +570,8 @@ http.createServer(async (req, res) => {
   }
 
   if (u.pathname === '/signed')
-    return send(res, 200, fs.readFileSync(path.join(__dirname, 'signed.html')), 'text/html; charset=utf-8');
+    return send(res, 200, withArtVersion(fs.readFileSync(path.join(__dirname, 'signed.html'), 'utf8')),
+                'text/html; charset=utf-8');
 
   if (u.pathname === '/api/population') {
     const wait = allow(ip, 'any');
@@ -617,6 +630,9 @@ http.createServer(async (req, res) => {
                    '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml',
                    '.woff2': 'font/woff2'
                  }[path.extname(file).toLowerCase()] || 'application/octet-stream';
+    // ⚠️ html only: injecting into a font or a png would corrupt it
+    if (path.extname(file).toLowerCase() === '.html')
+      return send(res, 200, withArtVersion(fs.readFileSync(file, 'utf8')), type);
     return send(res, 200, fs.readFileSync(file), type);
   }
 
