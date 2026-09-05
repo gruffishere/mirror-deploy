@@ -467,6 +467,7 @@ http.createServer(async (req, res) => {
     return json(res, 200, { cached: cache.size, queue: depth, lanes: LANES, maxQueue: MAX_QUEUE,
                             keys: E.hasKeys(), pinDrift: PIECE.pinDrift(),
                             staleDays: STALE_DAYS, staleSeen: staleSeen, staleRefreshed: staleRefreshed,
+                            renderFailRun: preFailRun,
                             claimsOpen: claimsOpen(), closesAt: deadlineAt(), signed: CLAIMED.size,
                             walletsRead: CLAIMS.walletsRead(),
                             turnedAway: turnedAway, artVersion: ART_VERSION, cardsDrawn: preDrawn,
@@ -864,6 +865,39 @@ let turnedAway = { queueFull: 0, rateLimited: 0, since: new Date().toISOString()
 
 const preFails = new Map();
 const PRE_COOLDOWN = 10 * 60e3;
+// ⛔ THE RENDERER GOES BAD OVER A CONTAINER'S LIFETIME, AND A RESTART CURES IT.
+// Measured twice: renders succeed at the normal rate up to about 173 in one process, then EVERY
+// one fails with 'the renderer produced nothing usable' while cards already on disk serve
+// perfectly. It is not the disk (320MB free of 433 when it happened, measured) and not the rate
+// limiter (the renderer is exempt). A deploy cleared it instantly, twice.
+//
+// The cause is not found. What IS known is that the failure is total, silent from outside, and
+// ends at a restart, so the site quietly stops gaining cards while looking perfectly healthy.
+// This turns that into a self-heal: after a run of failures on a process that has proven it can
+// render, exit and let the platform bring it back. State lives on the volume, so nothing is lost.
+//
+// ⚠️ IT CANNOT CRASH-LOOP. It refuses unless this process has already drawn cards successfully
+// (so a genuinely broken build cannot use it), and a timestamp on the volume keeps it to once
+// every 30 minutes across restarts.
+const HEAL_AFTER = 8, HEAL_NEEDS = 20, HEAL_EVERY = 30 * 60e3;
+const HEAL_FILE = path.join(path.dirname(CLOSED_FLAG), 'renderer.healed');
+let preFailRun = 0;
+function renderFailed(where, msg) {
+  preFailRun++;
+  if (preFailRun < HEAL_AFTER || preDrawn < HEAL_NEEDS) return;
+  let last = 0;
+  try { last = Date.parse(fs.readFileSync(HEAL_FILE, 'utf8').trim()) || 0; } catch {}
+  if (Date.now() - last < HEAL_EVERY) return;
+  try { fs.mkdirSync(path.dirname(HEAL_FILE), { recursive: true });
+        fs.writeFileSync(HEAL_FILE, new Date().toISOString()); } catch {}
+  console.log('');
+  console.log('⛔ THE RENDERER HAS STOPPED WORKING IN THIS PROCESS.');
+  console.log('   ' + preFailRun + ' failures in a row after ' + preDrawn + ' good cards (' + where + '): ' + msg);
+  console.log('   restarting so it comes back; all state is on the volume.');
+  console.log('');
+  setTimeout(() => process.exit(1), 250);
+}
+
 let preBusy = false, preDrawn = 0;
 
 async function prerenderTick() {
@@ -888,10 +922,12 @@ async function prerenderTick() {
       try {
         await CARDPNG.cardPng('http://127.0.0.1:' + PORT, a, stamp);
         preDrawn++;
+        preFailRun = 0;                                        // it works, so nothing is wrong
         preFails.delete(a);
       } catch (e) {
         preFails.set(a, { n: ((preFails.get(a) || {}).n || 0) + 1, at: Date.now() });
         console.log('pre-draw failed for ' + a + ': ' + e.message.slice(0, 60));
+        renderFailed('pre-draw', e.message.slice(0, 60));
       }
       break;                                                  // exactly one per tick
     }
