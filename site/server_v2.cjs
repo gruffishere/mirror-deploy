@@ -145,6 +145,24 @@ function stampOf(a) {
     (c ? '_' + Buffer.from((c.name || '') + '|' + (c.handle || '')).toString('hex').slice(0, 16) : '');
 }
 
+// ── A READING GOES OUT OF DATE ────────────────────────────────────────────────────────────────────
+// ⚠️ THE CACHE USED TO BE FOREVER. A wallet read once was served from that reading for the life of
+// the volume, so a card could say READ August 17 and print August 17's holdings in September. The
+// card admitted it in words, THIS WALLET MAY HAVE MOVED SINCE, which is honest and is not the same
+// thing as being right. gruff asked for it, 2026-09-05.
+//
+// ⛔ IT MUST SWITCH ITSELF OFF UNDER LOAD. Etherscan is the ceiling here, not the code: a fresh
+// read is about three calls and takes seconds to well over a minute. So a stale row is refreshed
+// only when a PERSON asks for that wallet AND the queue is completely empty AND their own uncached
+// ration allows it. The moment anybody is waiting, the cached answer goes out instantly, exactly as
+// before. A spike therefore costs nothing, which is the whole point of doing it this way round.
+//
+// ⚠️ NOT for the renderer's own reads: a card being drawn must never block on a chain walk.
+// ⚠️ A failed refresh falls back to the cached row. Stale beats nothing.
+const STALE_DAYS = +(process.env.MIRROR_STALE_DAYS || 7);
+const STALE_MS = STALE_DAYS * 24 * 3600e3;
+let staleRefreshed = 0, staleSeen = 0;
+
 let price = null, priceAt = 0;
 
 // ── WHAT THE CARD NEEDS THAT THE READING DOES NOT CONTAIN ─────────────────────────────────────────
@@ -418,6 +436,7 @@ http.createServer(async (req, res) => {
   if (u.pathname === '/api/status')
     return json(res, 200, { cached: cache.size, queue: depth, lanes: LANES, maxQueue: MAX_QUEUE,
                             keys: E.hasKeys(), pinDrift: PIECE.pinDrift(),
+                            staleDays: STALE_DAYS, staleSeen: staleSeen, staleRefreshed: staleRefreshed,
                             claimsOpen: claimsOpen(), closesAt: deadlineAt(), signed: CLAIMED.size,
                             walletsRead: CLAIMS.walletsRead(),
                             turnedAway: turnedAway, artVersion: ART_VERSION, cardsDrawn: preDrawn,
@@ -666,10 +685,23 @@ http.createServer(async (req, res) => {
 
     // a cached answer costs nothing, so it never queues and never touches the uncached ration
     if (!refresh && cache.has(addr)) {
-      const row = cache.get(addr);
-      if (!isOwnRenderer(req)) CLAIMS.logRead(addr, { facet: row.profile && row.profile.dominant, cached: true,
+      let row = cache.get(addr), wasFresh = false;
+      const at = Date.parse((row && row.at) || '') || 0;
+      if (at && Date.now() - at > STALE_MS && !isOwnRenderer(req)) {
+        staleSeen++;
+        // ⚠️ allow() only spends the ration when it says yes, so asking costs nothing when it says no
+        if (depth === 0 && allow(ip, 'fresh') === 0) {
+          try {
+            const out = await queue(() => read(addr, true));
+            if (!out.partial) { row = cache.get(addr) || row; staleRefreshed++; wasFresh = true; }
+          } catch (e) { /* stale beats nothing */ }
+        }
+      }
+      // ⚠️ SAYS WHAT HAPPENED, not what usually happens. Answering `cached` after re-reading the
+      // chain would put a false line in the one list this whole exercise exists to keep.
+      if (!isOwnRenderer(req)) CLAIMS.logRead(addr, { facet: row.profile && row.profile.dominant, cached: !wasFresh,
                              ens: (row.signals && row.signals.ens) || null });
-      return json(res, 200, { ...row, cached: true, resolvedFrom,
+      return json(res, 200, { ...row, cached: !wasFresh, refreshed: wasFresh, resolvedFrom,
         claimed: CLAIMED.get(addr) || null, claimsOpen: claimsOpen(), id: CLAIMS.shortId(addr), reads: CLAIMS.readsOf(addr),
         mirror: extras(row.profile) });
     }
