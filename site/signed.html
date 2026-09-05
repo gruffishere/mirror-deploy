@@ -105,6 +105,7 @@ h1{font:900 clamp(30px,4.6vw,60px)/1 var(--disp);letter-spacing:-.045em;margin:3
 .tkbar .top{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;justify-content:center}
 .tkbar .bot{font:700 9px/1.4 var(--mono);letter-spacing:.16em;color:#9a6a78;text-align:center}
 /* the page needs room under a bar that floats over it */
+/* a first guess only, before tkPaint() has measured the real ticker; never trust it to fit */
 body.hastk{padding-top:52px}
 /* stated on the board too: this is the page people are sent to, and a list nobody can join any
    more should say so rather than leaving them looking for the button. */
@@ -160,6 +161,11 @@ function tkPaint() {
   const show = !!tkClosesAt && (tkClosesAt - Date.now()) > 0;
   box.hidden = !show;
   document.body.classList.toggle("hastk", show);
+  // ⛔ MEASURED, NOT A NUMBER SOMEBODY TYPED ONCE. The 52px in the stylesheet was written for a
+  // one-line ticker and stayed behind when the wallets-read line was added, so on a phone the
+  // countdown sat 101px across the header: over the FACETS wordmark, which is also the way back
+  // to the front page. This repaints every second, so it also survives a rotation.
+  document.body.style.paddingTop = show ? (box.offsetHeight + 6) + "px" : "";
   if (!show) return;
   const left = tkClosesAt - Date.now();
   const h = Math.floor(left / 3600000), m = Math.floor(left / 60000) % 60, sec = Math.floor(left / 1000) % 60;

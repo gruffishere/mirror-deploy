@@ -56,6 +56,7 @@ a{color:inherit}
 .tkbar .top{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;justify-content:center}
 .tkbar .bot{font:700 9px/1.4 var(--mono);letter-spacing:.16em;color:#9a6a78;text-align:center}
 /* the page needs room under a bar that floats over it */
+/* a first guess only, before tkPaint() has measured the real ticker; never trust it to fit */
 body.hastk{padding-top:52px}.wm{background:var(--paper);border-radius:8px;padding:7px 14px 9px;display:inline-block;
   text-decoration:none}   /* it is a link home now, and a link that looks underlined is not a mark */
 .wm b{display:block;font:800 clamp(26px,3.2vw,44px)/.86 var(--disp);letter-spacing:-.05em;
@@ -405,6 +406,11 @@ function tkPaint() {
   const show = !!tkClosesAt && (tkClosesAt - Date.now()) > 0;
   box.hidden = !show;
   document.body.classList.toggle("hastk", show);
+  // ⛔ MEASURED, NOT A NUMBER SOMEBODY TYPED ONCE. The 52px in the stylesheet was written for a
+  // one-line ticker and stayed behind when the wallets-read line was added, so on a phone the
+  // countdown sat 101px across the header: over the FACETS wordmark, which is also the way back
+  // to the front page. This repaints every second, so it also survives a rotation.
+  document.body.style.paddingTop = show ? (box.offsetHeight + 6) + "px" : "";
   if (!show) return;
   const left = tkClosesAt - Date.now();
   const h = Math.floor(left / 3600000), m = Math.floor(left / 60000) % 60, sec = Math.floor(left / 1000) % 60;
