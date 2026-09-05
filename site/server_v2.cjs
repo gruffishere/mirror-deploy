@@ -580,6 +580,9 @@ http.createServer(async (req, res) => {
         'Cache-Control': 'public, max-age=600',
         'Content-Disposition': 'inline; filename="facets-mirror-' + name + '.png"' });
     } catch (e) {
+      // ⚠️ THE ROUTE COUNTS TOO. When the board is being browsed, most renders happen here and not
+      // in the loop, so a renderer that has died shows up on this path first.
+      renderFailed('card.png', String(e && e.message || e).slice(0, 60));
       return json(res, 500, { error: String(e && e.message || e) });
     }
   }
@@ -915,9 +918,21 @@ const PRE_COOLDOWN = 10 * 60e3;
 const HEAL_AFTER = 8, HEAL_NEEDS = 20, HEAL_EVERY = 30 * 60e3;
 const HEAL_FILE = path.join(path.dirname(CLOSED_FLAG), 'renderer.healed');
 let preFailRun = 0;
+// ⛔ THE SAFETY NET HAD A HOLE AND IT COST 43 CARDS.
+// It refused to restart unless this process had already drawn HEAL_NEEDS cards SUCCESSFULLY, so a
+// process whose renderer broke EARLY could never earn the right to heal and stayed broken for
+// ever. Watched it happen: 133 failures in a row, 440 browser launches, the process up the whole
+// time and never restarting, while the given-up count climbed past forty.
+// The crash-loop protection was never that counter anyway: it is the timestamp on the volume,
+// which allows at most one restart every HEAL_EVERY. Proving the renderer once worked is now an
+// ALTERNATIVE to having been up a while, not a requirement on top of it.
+const HEAL_MIN_UPTIME = 8 * 60e3;
+const BOOTED_AT = Date.now();
 function renderFailed(where, msg) {
   preFailRun++;
-  if (preFailRun < HEAL_AFTER || preDrawn < HEAL_NEEDS) return;
+  if (preFailRun < HEAL_AFTER) return;
+  const earned = preDrawn >= HEAL_NEEDS || Date.now() - BOOTED_AT > HEAL_MIN_UPTIME;
+  if (!earned) return;                             // a build broken from birth still cannot loop
   let last = 0;
   try { last = Date.parse(fs.readFileSync(HEAL_FILE, 'utf8').trim()) || 0; } catch {}
   if (Date.now() - last < HEAL_EVERY) return;
