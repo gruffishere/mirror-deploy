@@ -863,13 +863,14 @@ async function prerenderTick() {
       if (f && f.n >= PRE_GIVE_UP) preFails.delete(a);      // cooldown over, it gets another chance
       const stamp = stampOf(a);
       if (!stamp) continue;                                   // never read, nothing to draw from
-      // ⛔ IT DRAWS A MISSING CARD, IT DOES NOT CHASE THE COUNT.
-      // The stamp moves every time a wallet is read, so matching on the exact current stamp would
-      // have this loop redrawing the same 242 cards forever, one browser launch at a time, for a
-      // number that the live page already shows correctly without any rendering at all. Any card
-      // for this wallet is enough here; whoever exports one gets today's.
-      if (fs.readdirSync(CARDPNG.OUT).some(f => f.indexOf(a + '_') === 0 &&
-                                               f.indexOf('-' + ART_VERSION) >= 0)) continue;
+      // ⛔ THE EXACT FILE THE ROUTE WILL LOOK FOR, AND NOTHING LOOSER.
+      // This used to accept ANY card for the wallet carrying the current art version, because the
+      // stamp moved on every read and an exact match would have redrawn all 242 forever. The read
+      // count has since left the stamp, so it is stable again and the loose test is now the
+      // danger: it was satisfied by files the route could no longer find, so the loop drew nothing
+      // while every visitor's board rendered on demand and hit the rate limit. The pre-renderer
+      // and the route must ask the same question or the board stays empty while the disk looks full.
+      if (fs.existsSync(CARDPNG.cachedFile(a, stamp))) continue;
       try {
         await CARDPNG.cardPng('http://127.0.0.1:' + PORT, a, stamp);
         preDrawn++;
