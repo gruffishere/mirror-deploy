@@ -152,8 +152,14 @@ function stampOf(a) {
   if (!row) return null;
   const c = CLAIMED.get(a);
   // the version sits in a fixed position, so a card drawn by an older one is recognisable on sight
-  // the badge is part of the picture, so it belongs in the name of the file that holds the picture
-  return (row.at || '0').replace(/[^0-9]/g, '').slice(0, 14) + '-' + ART_VERSION + 'r' + CLAIMS.readsOf(a) +
+  // ⛔ THE READ COUNT IS NOT IN HERE, AND MUST NOT COME BACK.
+  // It was, from when the count was printed on the card. The badge left the picture this morning
+  // and this half stayed behind, so every single read still renamed that wallet's card. The file
+  // on disk then no longer matched, the route treated a drawn card as missing and rendered it
+  // again, and past fourteen of those a minute the board came back 429 and drew nothing.
+  // Measured on the live board: 242 cards on disk, none of them served, 96 rate-limited requests.
+  // What names the file must be exactly what changes the picture. The count changes neither.
+  return (row.at || '0').replace(/[^0-9]/g, '').slice(0, 14) + '-' + ART_VERSION +
     (c ? '_' + Buffer.from((c.name || '') + '|' + (c.handle || '')).toString('hex').slice(0, 16) : '');
 }
 
