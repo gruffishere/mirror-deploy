@@ -39,7 +39,13 @@ const argOf = k => {
 // ⚠️ process.env.PORT is how every host tells an app where to listen; without it the container
 // binds 8141, the platform health-checks a different port, and the deploy is marked dead.
 const PORT = Number(argOf('port') || process.env.PORT || 8141);
-const LANES = Math.max(1, Number(argOf('lanes') || 1));
+// ⛔ ONE LANE WAS THE CEILING, NOT ETHERSCAN. Reads were fully serialised: one wallet at a time,
+// measured at about six a minute on launch traffic while the queue climbed to 71 of 120 in three
+// minutes. The API rate limit is enforced somewhere else entirely, by a GLOBAL 230ms spacing on
+// call starts inside facet_engine_v2.cjs, which holds whatever the lane count is. So lanes were
+// costing throughput and buying no safety at all.
+// ⚠️ Raise it with MIRROR_LANES rather than a code change if it needs tuning again under load.
+const LANES = Math.max(1, Number(process.env.MIRROR_LANES || argOf('lanes') || 8));
 const ADMIN = argOf('admin') || process.env.MIRROR_ADMIN || null;
 
 const BASELINE = path.join(__dirname, '..', 'baseline_v2.json');
