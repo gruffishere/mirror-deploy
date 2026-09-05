@@ -39,6 +39,8 @@ const WIDTH = 1600, HEIGHT = 900;
 // signing does not keep serving the anonymous one.
 const keyOf = (addr, stamp) => addr.toLowerCase() + '_' + stamp + '.png';
 
+// how many browsers this process has launched, so 'it dies after about 173' stops being folklore
+let shots = 0;
 let busy = Promise.resolve();
 function queue(fn) { const r = busy.then(fn, fn); busy = r.catch(() => {}); return r; }
 
@@ -52,12 +54,24 @@ function shoot(url, file) {
     // dies part way and leaves no file: 'the renderer produced nothing usable'. It never happens on
     // Windows, which is why every local render succeeded while eleven wallets on the live site could
     // not be drawn at all. This makes it use /tmp instead.
+    // ⚠️ EVERY FLAG HERE IS ABOUT NOT LEAVING ANYTHING BEHIND.
+    // Renders succeed at the normal rate for a while and then every one fails, in a process that
+    // has been up a long time, which is the shape of something accumulating. Chrome normally
+    // forks a zygote and keeps a crash handler alive; --no-zygote keeps the process tree flat so
+    // that when this child exits there is nothing left, and the crash reporters write nothing.
     const args = ['--headless=new', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',
       '--disable-dev-shm-usage', '--disable-software-rasterizer',
+      '--no-zygote', '--disable-crashpad', '--disable-breakpad', '--disable-extensions',
+      '--disable-background-networking', '--disable-sync', '--mute-audio',
       '--user-data-dir=' + prof, '--virtual-time-budget=12000',
       '--window-size=' + WIDTH + ',' + HEIGHT, '--screenshot=' + file, url];
-    const p = spawn(chrome, args, { stdio: 'ignore' });
-    const killer = setTimeout(() => { try { p.kill(); } catch {} }, 30000);
+    shots++;
+    const p = spawn(chrome, args, { stdio: 'ignore', detached: true });
+    // ⚠️ THE WHOLE GROUP. Killing just the parent leaves its children running, and children that
+    // are never reaped are the most likely reason this stops working after a few hundred goes.
+    const killer = setTimeout(() => {
+      try { process.kill(-p.pid, 'SIGKILL'); } catch { try { p.kill('SIGKILL'); } catch {} }
+    }, 30000);
     p.on('error', e => { clearTimeout(killer); reject(e); });
     p.on('exit', () => {
       clearTimeout(killer);
@@ -96,7 +110,7 @@ async function cardPng(origin, addr, stamp) {
 // ⚠️ EXPORTED so the server can ask whether a card already exists WITHOUT the two of them keeping
 // separate ideas of what the file is called.
 const cachedFile = (addr, stamp) => path.join(OUT, keyOf(addr, stamp));
-module.exports = { cardPng, chrome, WIDTH, HEIGHT, OUT, keyOf, cachedFile };
+module.exports = { cardPng, chrome, WIDTH, HEIGHT, OUT, keyOf, cachedFile , shots: () => shots };
 
 if (require.main === module) {
   const a = process.argv[2];

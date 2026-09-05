@@ -468,6 +468,13 @@ http.createServer(async (req, res) => {
                             keys: E.hasKeys(), pinDrift: PIECE.pinDrift(),
                             staleDays: STALE_DAYS, staleSeen: staleSeen, staleRefreshed: staleRefreshed,
                             renderFailRun: preFailRun,
+                            // ⚠️ TO FIND OUT WHY THE RENDERER DIES, not to look busy. Every render
+                            // is a whole browser; if the machine is running out of memory this is
+                            // where it will show, and if it is not, that rules memory out.
+                            mem: { rssMB: Math.round(process.memoryUsage().rss / 1048576),
+                                   freeMB: Math.round(require('os').freemem() / 1048576),
+                                   totalMB: Math.round(require('os').totalmem() / 1048576) },
+                            rendersThisProcess: CARDPNG.shots(),
                             claimsOpen: claimsOpen(), closesAt: deadlineAt(), signed: CLAIMED.size,
                             walletsRead: CLAIMS.walletsRead(),
                             turnedAway: turnedAway, artVersion: ART_VERSION, cardsDrawn: preDrawn,
