@@ -70,6 +70,11 @@ const ART_VERSION = (() => {
     catch { parts.push('missing:' + p); }
   };
   add(path.join(__dirname, '..', 'artengine', 'MANIFEST.json'));
+  // ⛔ THE FILE THAT CHOOSES THE PIECE BELONGS IN THE FINGERPRINT OF THE PICTURE.
+  // It was missing, and it is not a detail: changing a pin or the scoring here changes what is
+  // drawn without touching a single file listed below, so every card already on disk would have
+  // survived the change and gone on being served. Found when repinning one wallet's art.
+  add(path.join(__dirname, '..', 'mirror_piece.cjs'));
   for (const f of ['faz1_layouts.js', 'facetword.js', 'faz1.css', 'one.html'])
     add(path.join(__dirname, '..', 'cards', f));
   return crypto.createHash('sha256').update(parts.join('|')).digest('hex').slice(0, 8);
@@ -412,7 +417,7 @@ http.createServer(async (req, res) => {
   // what the page needs in order to tell somebody WHY they are waiting
   if (u.pathname === '/api/status')
     return json(res, 200, { cached: cache.size, queue: depth, lanes: LANES, maxQueue: MAX_QUEUE,
-                            keys: E.hasKeys(),
+                            keys: E.hasKeys(), pinDrift: PIECE.pinDrift(),
                             claimsOpen: claimsOpen(), closesAt: deadlineAt(), signed: CLAIMED.size,
                             walletsRead: CLAIMS.walletsRead(),
                             turnedAway: turnedAway, artVersion: ART_VERSION, cardsDrawn: preDrawn,
@@ -708,6 +713,15 @@ http.createServer(async (req, res) => {
     ' · refresh ' + (ADMIN ? 'admin only' : 'DISABLED (no --admin token)'));
   const st = CLAIMS.stats();
   console.log('twin index ' + TWINS.length + ' wallets');
+  // ⚠️ LOUD, because a pin that stopped drawing what it promised looks exactly like a pin that
+  // is working: the trait names still read correctly. Only the picture changes.
+  const drift = PIECE.pinDrift();
+  if (drift.length) {
+    console.log('');
+    console.log('⛔ A PINNED WALLET NO LONGER DRAWS WHAT IT WAS PINNED TO:');
+    drift.forEach(d => console.log('   ' + d.addr + ' — ' + (d.error || d.wrong.join(' · '))));
+    console.log('');
+  } else console.log('pins: ' + PIECE.pinDrift().length + ' drifted, all drawing what they promise');
   console.log('png renderer: ' + (CARDPNG.chrome || '⛔ NONE FOUND, downloads will fail. set MIRROR_CHROME'));
   console.log('lists: ' + st.reads + ' reads (' + st.readsUnique + ' unique) · ' + st.signed +
     ' signed' + (st.signedFailingVerification ? '  ⛔ ' + st.signedFailingVerification +

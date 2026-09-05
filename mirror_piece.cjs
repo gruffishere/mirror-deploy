@@ -42,13 +42,54 @@ function engine(supply, seed) {
 // mouth, black contour on Aurora, measured at 0.1% for the eyes.
 // ⚠️ IT LIVES HERE, in the one function every path goes through, so the page and the rendered card
 // cannot disagree about what this wallet looks like.
+// ⛔ A NUDGE ALONE IS NOT A PIN, it is a coordinate in a space that moves.
+// 1961 was chosen against the engine of 2026-08-27 and described in writing as Laser eyes on
+// Aurora. When the new eyes and the homage pieces landed, that same number still returned a
+// piece whose Eyes trait SAID Laser while the picture had become two flat red squares lost in
+// Ghost's own colour flecks. The traits matched their description perfectly and the art was
+// wrong, so nothing that reads trait names could have caught it. gruff did, by looking.
+// So the pin now carries what it is supposed to draw, and pinDrift() checks it.
+//
+// ⚠️ MEASURED WHILE CHOOSING THIS ONE: the Laser eye only renders with a socket under it, which
+// is what makes it read as an eye at all, when Veil is Shadow AND Contour is Color. Every other
+// combination flattens it into a red square. 1961 was Shadow + Black, which is exactly why it
+// went dull. 47 of 30,000 candidates carry Laser; this is one of the two that also has a halo,
+// a clean background and the eyes reading properly. gruff picked it on sight.
 const PINNED = {
-  '0x250dc85178fb6859e9ee02c925d46aab946a55e7': 1961,
+  '0x250dc85178fb6859e9ee02c925d46aab946a55e7': {
+    nudge: 690,
+    expect: { Eyes: 'Laser', Mouth: 'Smile', Halo: 5, Background: 'Bare',
+              Veil: 'Shadow', Contour: 'Color' },
+  },
 };
+
+const pinNudge = addr => {
+  const p = PINNED[String(addr).toLowerCase()];
+  return p == null ? null : p.nudge;
+};
+
+// ⚠️ CALLED AT BOOT AND REPORTED BY /api/status, so a pin that has quietly stopped drawing what
+// it promised is visible in one request instead of in somebody's timeline.
+function pinDrift() {
+  const out = [];
+  for (const [addr, p] of Object.entries(PINNED)) {
+    let got;
+    try { got = mirrorPiece(addr, 'GHOST', { nudge: p.nudge }).traits; }
+    catch (e) { out.push({ addr: addr, error: e.message }); continue; }
+    const wrong = [];
+    for (const [k, want] of Object.entries(p.expect)) {
+      const t = got.find(x => x.trait === k);
+      const has = t ? t.value : null;
+      if (String(has) !== String(want)) wrong.push(k + ' is ' + has + ', not ' + want);
+    }
+    if (wrong.length) out.push({ addr: addr, wrong: wrong });
+  }
+  return out;
+}
 
 function mirrorPiece(addr, facet, opts) {
   opts = opts || {};
-  const pin = PINNED[String(addr).toLowerCase()];
+  const pin = pinNudge(addr);
   if (pin != null && opts.nudge == null) opts = Object.assign({}, opts, { nudge: pin });
   if (!FACETS.includes(facet)) throw new Error('unknown facet ' + facet);
   const E = engine(opts.supply, opts.seed);
@@ -102,7 +143,7 @@ function bestPiece(addr, facet, heat) {
   // ⚠️ THE PIN HAS TO BE CAUGHT HERE TOO. Everything that draws a card comes through bestPiece,
   // and it passes an explicit nudge for every candidate, so the guard inside mirrorPiece (which
   // only fires when no nudge was given) never saw it and the pinned wallet kept its old art.
-  const pin = PINNED[String(addr).toLowerCase()];
+  const pin = pinNudge(addr);
   if (pin != null) return mirrorPiece(addr, facet, { nudge: pin });
   const h = Math.max(0, Math.min(1, Number(heat) || 0));
   const tries = 1 + Math.round(h * 180);
@@ -115,7 +156,7 @@ function bestPiece(addr, facet, heat) {
   return best;
 }
 
-module.exports = { mirrorPiece, seedOf, FACETS, pieceScore, bestPiece };
+module.exports = { mirrorPiece, seedOf, FACETS, pieceScore, bestPiece, pinDrift };
 
 if (require.main !== module) return;
 
