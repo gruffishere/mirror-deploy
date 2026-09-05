@@ -306,7 +306,13 @@ async function read(addr, refresh) {
 // belongs to gruff, so it is rationed on its own. This is the guard that does NOT depend on how much
 // traffic the site gets: it is one bored person with a loop, not a crowd.
 const BUCKETS = new Map();
-const LIMIT = { any: { n: 60, per: 60e3 }, fresh: { n: 6, per: 60e3 }, claim: { n: 10, per: 60e3 },
+// ⛔ SIX UNCACHED WALLETS A MINUTE PER PERSON WAS A SINGLE-LANE RULE.
+// It existed to stop one visitor monopolising the one lane there used to be. With eight lanes it
+// turned 41 people away inside three minutes of launch traffic while the queue sat at ZERO and the
+// server was idle. The things that actually protect this are elsewhere and unchanged: the global
+// 230ms spacing on Etherscan calls, and MAX_QUEUE. This one was only costing people their reading.
+// ⚠️ It also bites hardest on shared IPs, where a whole mobile carrier can share one bucket.
+const LIMIT = { any: { n: 60, per: 60e3 }, fresh: { n: Number(process.env.MIRROR_FRESH_PER_MIN || 24), per: 60e3 }, claim: { n: 10, per: 60e3 },
                 png: { n: 14, per: 60e3 } };
 function allow(ip, kind) {
   const now = Date.now();
