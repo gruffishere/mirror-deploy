@@ -948,8 +948,21 @@ function freeMBnow() {
 }
 function makeRoom() {
   if (freeMBnow() >= MIN_FREE_MB) return;
+  // ⛔ THE BOARD OUTGREW THE VOLUME, so protecting ALL of it stopped being possible.
+  // Every signed card was protected, which was right at 242 signatures. At 1,533 it is about
+  // 460MB of cards on a 433MB disk: the protected set alone no longer fits, eviction ran out of
+  // anything it was allowed to delete, the disk hit its floor and EVERY render began failing.
+  // Measured live: 90MB free, 139 already evicted, 145 render failures in a row, 1,021 cards for
+  // 1,533 signatures.
+  //
+  // The protection is a WINDOW now: the newest KEEP_NEWEST signed cards are never touched, because
+  // those are what people are looking at and what a fresh share needs. Anything older, signed or
+  // not, goes oldest first and is redrawn on demand in about two seconds when somebody scrolls to
+  // it, which is only possible at all if there is room to write. That is the whole point.
+  const KEEP_NEWEST = 400;
   const keep = new Set();
-  try { for (const r of CLAIMS.signedLatest()) keep.add(String(r.addr || '').toLowerCase()); } catch { return; }
+  try { for (const r of CLAIMS.signedLatest().slice(0, KEEP_NEWEST))
+          keep.add(String(r.addr || '').toLowerCase()); } catch { return; }
   if (!keep.size) return;                          // could not read the board: evict nothing
   let files;
   try { files = fs.readdirSync(CARDPNG.OUT)
@@ -963,7 +976,7 @@ function makeRoom() {
     try { fs.unlinkSync(f.p); gone++; evicted++; } catch {}
   }
   if (gone) console.log('card store was low on room: removed ' + gone +
-    " unsigned wallets' cards, " + Math.round(freeMBnow()) + 'MB free now');
+    ' cards outside the newest ' + KEEP_NEWEST + ', ' + Math.round(freeMBnow()) + 'MB free now');
 }
 
 let preBusy = false, preDrawn = 0;
