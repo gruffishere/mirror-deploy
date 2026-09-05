@@ -598,14 +598,35 @@ function drawReport() {
   // every beat, most striking first. `score` is how far this number sits from the population median,
   // which is the engine's own answer to "how striking is this".
   const beats = (st.report || []).slice().sort((a, b) => b.score - a.score);
-  // ⚠️ the blocks cycle the seven in the collection's own order, which is decoration and says so.
-  // They are NOT each beat's facet: no beat belongs to a facet, and colouring them as if it did would
-  // invent a mapping the engine does not have.
-  const F7 = ['NEWBIE', 'COLLECTOR', 'DEGEN', 'BUILDER', 'OG', 'WHALE', 'GHOST'];
+  // ⛔ THE BLOCK IS THE FACET THAT NUMBER ACTUALLY FEEDS.
+  // These used to cycle the seven in order, decoration, on the reasoning that no beat belongs to a
+  // facet and colouring them would invent a mapping. That reasoning was wrong: the mapping is
+  // written down in facet_engine_v2.cjs, in the axis formulas themselves. Contracts created IS
+  // BUILDER, at 0.70 of it. Every line below quotes the term it comes from, so this can be checked
+  // against the engine rather than believed. gruff spotted the cycle, 2026-09-05.
+  const BEAT_FACET = {
+    build:    'BUILDER',    // BUILDER   0.70 * min(1, deployCount / 30)
+    hold:     'COLLECTOR',  // COLLECTOR 0.50 * colls + 0.30 * nfts
+    volume:   'WHALE',      // WHALE     0.35 * volumeEth
+    silence:  'GHOST',      // GHOST     0.35 * idleDays
+    age:      'OG',         // OG        0.55 * ageDays
+    first:    'OG',         // OG        0.20 * era
+    gas:      'DEGEN',      // DEGEN     0.20 * gasRate
+    gastotal: 'DEGEN',      // DEGEN     0.20 * gasRate
+    revert:   'DEGEN',      // DEGEN     0.20 * failShare
+    peak:     'DEGEN',      // DEGEN     0.20 * txs
+    busiest:  'DEGEN',      // DEGEN     0.20 * txs
+    // ⚠️ hour and contacts are deliberately absent. loudShare and distinctContacts appear in NO
+    // axis formula, so giving them a colour would be the invention the old comment warned about.
+    // They get a neutral block instead, which is the honest answer and reads as one.
+  };
+  const blockOf = k => BEAT_FACET[k]
+    ? 'background:var(--' + BEAT_FACET[k] + ')'
+    : 'background:rgba(255,255,255,.16);box-shadow:inset 0 0 0 1px rgba(255,255,255,.10)';
   const story = '<div class="sec"><div class="back"><span class="frame"></span>' +
     '<h2>' + beats.length + ' THINGS THE CHAIN REMEMBERS</h2>' +
     beats.map((b, i) => '<div class="beat">' +
-      '<div class="blk" style="background:var(--' + F7[i % 7] + ')"></div>' +
+      '<div class="blk" style="' + blockOf(b.key) + '"></div>' +
       '<div><div class="l">' + esc(b.line) + '</div>' +
       (b.quip ? '<div class="q">' + esc(b.quip) + '</div>' : '') + '</div></div>').join('') +
     '</div></div>';
