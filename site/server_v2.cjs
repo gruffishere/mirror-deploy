@@ -699,6 +699,19 @@ http.createServer(async (req, res) => {
     let b; try { b = await body(req); } catch (e) { return json(res, 400, { error: e.message }); }
     const a = String(b.address || '').trim();
     if (!/^0x[0-9a-fA-F]{40}$/.test(a)) return json(res, 400, { error: 'give a 0x address' });
+    // ⛔ YOU CANNOT SIGN A CARD YOU NEVER HAD.
+    // A signature proves control of a wallet and nothing else, so signing was open to anyone
+    // posting straight at the API, with no reading behind it: no facet, no card, just a row on the
+    // board. Someone found it during the launch and put 30 rows in over three minutes, one every
+    // few seconds at exactly the ten-a-minute claim limit, handles like grant_d_clark and
+    // derek_l_snyder. They show on the board as holes. The list this gates is the mint list.
+    //
+    // ⚠️ IT BELONGS HERE, NOT ON /api/claim. The claim body carries only a nonce and a signature;
+    // the address is recovered from the signature inside claims.cjs. A guard there reading b.addr
+    // would have rejected EVERY signature on the site. This is where the address actually arrives.
+    // ⚠️ NO REAL SIGNER IS BLOCKED: the page reads the wallet before it will show the form.
+    if (!cache.has(a.toLowerCase()))
+      return json(res, 400, { error: 'read this wallet first' });
     return json(res, 200, CLAIMS.issueNonce(a));
   }
 
