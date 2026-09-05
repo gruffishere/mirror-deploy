@@ -396,7 +396,13 @@ http.createServer(async (req, res) => {
         '<meta name="twitter:card" content="summary_large_image">' +
         '<meta name="twitter:title" content="' + title + '">' +
         '<meta name="twitter:description" content="' + desc + '">' +
-        '<meta name="twitter:image" content="' + img + '"></head>');
+        '<meta name="twitter:image" content="' + img + '">' +
+        // ⛔ THE PAGE HAS TO BE TOLD, TOO. A short link is rewritten HERE, on the server, so the
+        // browser's own URL stays /5 and location.search is empty. The unfurl was therefore
+        // perfect and the page a human landed on was the blank form: every shared card link
+        // opened nothing. Checking the og tags with curl proved the half that worked.
+        // `q` has already been matched against ^0x[0-9a-f]{40}$, so it is safe to inline.
+        '<script>window.MIRROR_ADDR="' + q + '";</scr' + 'ipt></head>');
     }
     return send(res, 200, page, 'text/html; charset=utf-8');
   }

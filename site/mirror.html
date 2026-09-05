@@ -772,8 +772,12 @@ $('#tweet').onclick = () => {
   }).catch(() => {});
 })();
 
-// ?addr= makes a reading a link somebody can send
-const q = new URLSearchParams(location.search).get('addr');
+// ?addr= makes a reading a link somebody can send, and /5 is the same thing with a shorter name.
+// ⚠️ BOTH, because they arrive differently: ?addr= is in the URL the browser can see, while a
+// short link is resolved on the server and handed over as MIRROR_ADDR. Reading only the first
+// left every /5 link opening the empty form.
+const q = new URLSearchParams(location.search).get('addr') ||
+          (/^0x[0-9a-f]{40}$/i.test(window.MIRROR_ADDR || '') ? window.MIRROR_ADDR : null);
 if (q) { $('#a').value = q; read(q); }
 </script>
 </body></html>
