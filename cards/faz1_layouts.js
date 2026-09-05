@@ -82,7 +82,6 @@ function view(D, signed, typed, twin, near, rank) {
     rarer: (100 * p.rarity).toFixed(2),
     top: (100 - 100 * p.rarity).toFixed(2),
     spread: p.spread.toFixed(1),
-    reads: Number(D.reads) || 0,
     beats: (D.story && D.story.card || []).map(function (b) { return b.line; }),
     twin: twin,
     near: near,
@@ -457,12 +456,13 @@ function L2b(v) {
     // wrong everywhere else: someone else's card carried their name as the byline, and an unsigned
     // card carried none. The signer is already named beside the portrait; this line credits the work.
     '<div class="m" style="font-size:.95cqw;color:#5f5f6c;margin-top:.5cqw">by @gruffwashere</div>' +
-    // ⚠️ ONLY ONCE IT MEANS SOMETHING. A card that says READ 1 TIME on the first visit is noise on
-    // every card ever made; from two upward it is a fact about how much attention a wallet drew.
-    (v.reads > 1
-      ? '<div class="m" style="font-size:.95cqw;color:#7a7a88;margin-top:.35cqw">READ ' +
-          v.reads.toLocaleString('en-US') + ' TIMES</div>'
-      : '') +
+    // ⛔ THE READ COUNT IS NOT DRAWN HERE, AND MUST NOT COME BACK.
+    // It used to be, and it went stale the moment it was painted: a card is drawn once and then
+    // cached under a URL that does not change when the count does, so the board showed READ 6
+    // TIMES beside a live chip reading 12. A number that keeps moving cannot live inside a
+    // picture that is made once. It is now an overlay on the board and on the wallet page,
+    // rendered from the live value every time it is shown. Putting it back here means either
+    // redrawing every card on every read (this filled the disk once) or lying again.
   '</div>' +
 
   // the piece

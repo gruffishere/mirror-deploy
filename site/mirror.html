@@ -111,6 +111,15 @@ button.ghost{background:transparent;color:#e9e9ef;border:1px solid rgba(255,255,
 #out{display:none;padding:0 0 90px}
 #out.on{display:block}
 .cardwrap{max-width:1000px;margin:0 auto}
+/* ⚠️ OUTSIDE .cardwrap ON PURPOSE, twice over. On a phone .cardwrap scrolls sideways, and a badge
+   inside it would slide off with the card; and draw() replaces that element's innerHTML on every
+   render, which would wipe a child away. It also must never reach the PNG: the shooter loads
+   /cards/one.html, not this page, so nothing here can end up baked into a card. */
+#cardbox{position:relative;max-width:1000px;margin:0 auto}
+#cardbox .rd{position:absolute;top:12px;right:12px;z-index:2;font:600 12px/1 var(--mono);
+  color:#d2d2dc;letter-spacing:.06em;background:rgba(10,10,14,.74);
+  border:1px solid rgba(255,255,255,.15);border-radius:999px;padding:6px 9px;
+  pointer-events:none;white-space:nowrap}
 
 /* declared BEFORE the media query on purpose: same specificity, so whichever comes last wins */
 .swipe{display:none;font:700 11px/1 var(--mono);letter-spacing:.16em;color:#5f5f6c;
@@ -284,7 +293,10 @@ footer p{margin:0 0 9px;max-width:80ch}
   </section>
 
   <section id="out">
-    <div class="cardwrap" id="card"></div>
+    <div id="cardbox">
+      <div class="cardwrap" id="card"></div>
+      <span class="rd" id="crd" hidden></span>
+    </div>
     <p class="swipe">&#8592; SWIPE THE CARD</p>
     <div class="acts">
       <button class="ghost" id="png">DOWNLOAD THE CARD</button>
@@ -326,6 +338,12 @@ function view() {
 }
 function draw() {
   $('#card').innerHTML = FAZ1_CARDS.L2b(view());
+  // ⛔ THE ONE PLACE THIS NUMBER IS SHOWN, and it is read fresh every time. It used to be drawn
+  // into the card itself, where it froze at whatever it was when the picture was made.
+  const n = DATA && DATA.reads ? +DATA.reads : 0;
+  const b = $('#crd');
+  b.textContent = 'READ ' + n.toLocaleString('en-US') + '×';
+  b.hidden = !(n > 1);
 }
 
 // ── reading ───────────────────────────────────────────────────────────────────────────────────────

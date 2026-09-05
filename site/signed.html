@@ -38,6 +38,15 @@ h1{font:900 clamp(30px,4.6vw,60px)/1 var(--disp);letter-spacing:-.045em;margin:3
 #lb.on{display:flex}
 #lb img{max-width:100%;max-height:100%;border-radius:12px;display:block;
   box-shadow:0 30px 90px rgba(0,0,0,.7)}
+/* the wrapper only exists so the badge can sit on the corner of the IMAGE, not of the screen */
+#lbw{position:relative;display:inline-block;max-width:100%;max-height:100%;line-height:0}
+#lbw .rd{top:13px;right:13px;font-size:12.5px}
+.tile{position:relative}
+/* ⚠️ AN OVERLAY, NOT PART OF THE PICTURE. The card PNG is immutable for a year; this is drawn
+   from the live count on every render of the board, so it cannot disagree with itself. */
+.rd{position:absolute;top:9px;right:9px;font:600 11px/1 var(--mono);color:#d2d2dc;
+  letter-spacing:.06em;background:rgba(10,10,14,.74);border:1px solid rgba(255,255,255,.15);
+  border-radius:999px;padding:5px 8px;pointer-events:none;white-space:nowrap}
 .tile .who{margin-top:9px;display:flex;align-items:baseline;gap:8px}
 .tile .nm{font-weight:700;color:#e9e9ef;font-size:15px}
 .tile .hd{font:600 12.5px/1 var(--mono);color:#6f6f7c}
@@ -125,7 +134,7 @@ body.hastk{padding-top:52px}
   </div>
   <div class="grid" id="grid"></div>
 </div>
-<div id="lb"><img alt=""></div>
+<div id="lb"><div id="lbw"><img alt=""><span class="rd" id="lbrd" hidden></span></div></div>
 
 <script>
 const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g,
@@ -181,11 +190,12 @@ function draw() {
   document.getElementById('grid').innerHTML = rows.length ? rows.map(r =>
     '<div class="tile">' +
       '<img loading="lazy" alt="" data-full="1" data-tries="0" ' +
+        'data-reads="' + (r.reads || 0) + '" ' +
         'src="/api/card.png?addr=' + encodeURIComponent(r.addr) + '&v=' + encodeURIComponent(ARTV) + '">' +
+      (r.reads > 1 ? '<span class="rd">READ ' + r.reads + '&times;</span>' : '') +
       '<div class="who">' +
         '<span class="nm">' + esc(r.name || short(r.addr)) + '</span>' +
         (r.handle ? '<span class="hd">@' + esc(r.handle) + '</span>' : '') +
-        (r.reads > 1 ? '<span class="hd">' + r.reads + '&times;</span>' : '') +
         (r.facet ? '<span class="fc" style="color:var(--' + r.facet + '-lit)">' + esc(r.facet) + '</span>' : '') +
       '</div>' +
     '</div>').join('') : '<p class="empty">Nobody here yet.</p>';
@@ -251,9 +261,16 @@ document.addEventListener('error', e => {
 
 // ⚠️ delegated, because the tiles are built after this runs and rebuilt whenever the list changes
 const lb = document.getElementById('lb'), lbimg = lb.querySelector('img');
+const lbrd = document.getElementById('lbrd');
 document.addEventListener('click', e => {
   const t = e.target;
-  if (t && t.dataset && t.dataset.full) { lbimg.src = t.src; lb.classList.add('on'); return; }
+  if (t && t.dataset && t.dataset.full) {
+    lbimg.src = t.src;
+    // the blown-up card carries the same live number the tile did, so clicking cannot change it
+    const n = +(t.dataset.reads || 0);
+    lbrd.textContent = 'READ ' + n + '×'; lbrd.hidden = !(n > 1);
+    lb.classList.add('on'); return;
+  }
   if (lb.classList.contains('on')) { lb.classList.remove('on'); lbimg.src = ''; }
 });
 addEventListener('keydown', e => {
