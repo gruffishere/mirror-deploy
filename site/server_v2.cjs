@@ -971,6 +971,15 @@ function renderFailed(where, msg) {
 // losing one shows as a hole in the thing this whole exercise is for. Everything else is a
 // convenience that can be drawn again in two seconds, so the oldest of those go first.
 const MIN_FREE_MB = 90, FREE_TARGET_MB = 140;
+// ⛔ ONE NUMBER, BECAUSE TWO HALVES WERE FIGHTING OVER IT.
+// Eviction protected the newest 400 cards. The pre-renderer, meanwhile, went on trying to draw a
+// card for ALL 2,549 signatures, so it immediately redrew whatever eviction had just deleted.
+// The disk could never recover: 74MB free and falling, eviction credited with 181 removals and
+// still losing, the renderer burning launches on cards that were about to be deleted again, and
+// nothing on the board improving. A treadmill, not a shortage.
+// The pre-renderer now draws only inside the same window eviction protects. Everything older is
+// drawn on demand, in about two seconds, when somebody actually scrolls to it.
+const KEEP_NEWEST = 400;
 let evicted = 0;
 function freeMBnow() {
   try { const t = fs.statfsSync(CARDPNG.OUT); return t.bavail * t.bsize / 1048576; }
@@ -989,7 +998,6 @@ function makeRoom() {
   // those are what people are looking at and what a fresh share needs. Anything older, signed or
   // not, goes oldest first and is redrawn on demand in about two seconds when somebody scrolls to
   // it, which is only possible at all if there is room to write. That is the whole point.
-  const KEEP_NEWEST = 400;
   const keep = new Set();
   try { for (const r of CLAIMS.signedLatest().slice(0, KEEP_NEWEST))
           keep.add(String(r.addr || '').toLowerCase()); } catch { return; }
@@ -1015,7 +1023,8 @@ async function prerenderTick() {
   if (preBusy || !CARDPNG.chrome) return;
   preBusy = true;
   try {
-    for (const r of CLAIMS.signedLatest()) {
+    // ⚠️ THE SAME WINDOW EVICTION PROTECTS. Drawing outside it is work that gets deleted.
+    for (const r of CLAIMS.signedLatest().slice(0, KEEP_NEWEST)) {
       const a = String(r.addr || '').toLowerCase();
       const f = preFails.get(a);
       if (f && f.n >= PRE_GIVE_UP && Date.now() - f.at < PRE_COOLDOWN) continue;
