@@ -41,12 +41,19 @@ h1{font:900 clamp(30px,4.6vw,60px)/1 var(--disp);letter-spacing:-.045em;margin:3
 /* the wrapper only exists so the badge can sit on the corner of the IMAGE, not of the screen */
 #lbw{position:relative;display:inline-block;max-width:100%;max-height:100%;line-height:0}
 #lbw .rd{top:13px;right:13px;font-size:12.5px}
-.tile{position:relative}
 /* ⚠️ AN OVERLAY, NOT PART OF THE PICTURE. The card PNG is immutable for a year; this is drawn
    from the live count on every render of the board, so it cannot disagree with itself. */
-.rd{position:absolute;top:9px;right:9px;font:600 11px/1 var(--mono);color:#d2d2dc;
-  letter-spacing:.06em;background:rgba(10,10,14,.74);border:1px solid rgba(255,255,255,.15);
+.rd{position:absolute;font:600 11px/1 var(--mono);color:#d2d2dc;letter-spacing:.06em;
+  background:rgba(10,10,14,.74);border:1px solid rgba(255,255,255,.15);
   border-radius:999px;padding:5px 8px;pointer-events:none;white-space:nowrap}
+/* ⛔ ABOVE THE THUMBNAIL, NOT ON IT, and the reason is size not taste. The badge is a fixed
+   number of pixels while the card shrinks to fit the column, so on a three-across board it
+   covered the tail of `approved by facets`. Every corner of that card is already used, so there
+   is no free one to move it to. It clears the picture entirely here and stays legible at any
+   column width. The lightbox and the wallet page DO overlay it, because at that size the badge
+   is a small fraction of the card and sits well above the stamp. */
+.tile{position:relative;padding-top:21px}
+.tile .rd{top:0;right:2px}
 .tile .who{margin-top:9px;display:flex;align-items:baseline;gap:8px}
 .tile .nm{font-weight:700;color:#e9e9ef;font-size:15px}
 .tile .hd{font:600 12.5px/1 var(--mono);color:#6f6f7c}
