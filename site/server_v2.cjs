@@ -479,7 +479,8 @@ http.createServer(async (req, res) => {
     return json(res, 200, { cached: cache.size, queue: depth, lanes: LANES, maxQueue: MAX_QUEUE,
                             keys: E.hasKeys(), pinDrift: PIECE.pinDrift(),
                             staleDays: STALE_DAYS, staleSeen: staleSeen, staleRefreshed: staleRefreshed,
-                            renderFailRun: preFailRun, cardsEvicted: evicted,
+                            renderFailRun: preFailRun, cardsEvicted: evicted, heal: healState,
+                            upMin: Math.round((Date.now() - BOOTED_AT) / 60e3), preDrawn: preDrawn,
                             // ⚠️ TO FIND OUT WHY THE RENDERER DIES, not to look busy. Every render
                             // is a whole browser; if the machine is running out of memory this is
                             // where it will show, and if it is not, that rules memory out.
@@ -927,15 +928,29 @@ let preFailRun = 0;
 // which allows at most one restart every HEAL_EVERY. Proving the renderer once worked is now an
 // ALTERNATIVE to having been up a while, not a requirement on top of it.
 const HEAL_MIN_UPTIME = 8 * 60e3;
+// ⛔ NO CONDITION MAY OUTRANK A RENDERER THAT IS PLAINLY DEAD.
+// Twice now the net has been watched NOT firing while failures ran into the hundreds. Each time
+// the reason was a condition that looked prudent in isolation and was wrong in the only situation
+// it existed for. Past this many failures in a row nothing is worth protecting: restart.
+const HEAL_NO_MATTER_WHAT = 40;
 const BOOTED_AT = Date.now();
+// ⚠️ REPORTED, so the next time it does not fire the server says why instead of me guessing.
+let healState = 'no failures yet';
 function renderFailed(where, msg) {
   preFailRun++;
-  if (preFailRun < HEAL_AFTER) return;
+  if (preFailRun < HEAL_AFTER) { healState = 'waiting: ' + preFailRun + ' of ' + HEAL_AFTER + ' failures'; return; }
+  const desperate = preFailRun >= HEAL_NO_MATTER_WHAT;
   const earned = preDrawn >= HEAL_NEEDS || Date.now() - BOOTED_AT > HEAL_MIN_UPTIME;
-  if (!earned) return;                             // a build broken from birth still cannot loop
+  if (!earned && !desperate) {
+    healState = 'blocked: only ' + preDrawn + ' good cards and up ' +
+      Math.round((Date.now() - BOOTED_AT) / 60e3) + 'm'; return;
+  }
   let last = 0;
   try { last = Date.parse(fs.readFileSync(HEAL_FILE, 'utf8').trim()) || 0; } catch {}
-  if (Date.now() - last < HEAL_EVERY) return;
+  if (Date.now() - last < HEAL_EVERY && !desperate) {
+    healState = 'blocked: last heal ' + Math.round((Date.now() - last) / 60e3) + 'm ago'; return;
+  }
+  healState = 'firing after ' + preFailRun + ' failures' + (desperate ? ' (override)' : '');
   try { fs.mkdirSync(path.dirname(HEAL_FILE), { recursive: true });
         fs.writeFileSync(HEAL_FILE, new Date().toISOString()); } catch {}
   console.log('');
