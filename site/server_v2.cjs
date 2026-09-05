@@ -544,7 +544,14 @@ http.createServer(async (req, res) => {
                    reads: CLAIMS.readsOf(r.addr), id: CLAIMS.shortId(r.addr),
                    // shown, but marked: on the board and not in the draw
                    eligible: !CLAIMS.EXCLUDED.has(r.addr),
-                   facet: r.facet || (cache.get(r.addr) || {}).profile && cache.get(r.addr).profile.dominant || null,
+                   // ⛔ THE FACET THE CARD IS SHOWING, not the one that was true at signing.
+                   // signed.jsonl records the facet somebody signed with and must keep it: it is
+                   // evidence. But the board prints that label BESIDE the card, and once readings
+                   // started being refreshed after a week a wallet could move: the chip said
+                   // COLLECTOR next to a card that said DEGEN, and the facet filters put it in the
+                   // wrong bucket. Measured on two of sixteen sampled wallets within minutes of
+                   // the refresh landing. The live reading wins here; the signed row is untouched.
+                   facet: ((cache.get(r.addr) || {}).profile || {}).dominant || r.facet || null,
                    t: r.t }))
       .sort((a, b) => (a.t < b.t ? 1 : -1));               // newest first
     return json(res, 200, { n: rows.length, rows: rows });
