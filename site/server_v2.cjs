@@ -467,7 +467,7 @@ http.createServer(async (req, res) => {
     return json(res, 200, { cached: cache.size, queue: depth, lanes: LANES, maxQueue: MAX_QUEUE,
                             keys: E.hasKeys(), pinDrift: PIECE.pinDrift(),
                             staleDays: STALE_DAYS, staleSeen: staleSeen, staleRefreshed: staleRefreshed,
-                            renderFailRun: preFailRun,
+                            renderFailRun: preFailRun, cardsEvicted: evicted,
                             // ⚠️ TO FIND OUT WHY THE RENDERER DIES, not to look busy. Every render
                             // is a whole browser; if the machine is running out of memory this is
                             // where it will show, and if it is not, that rules memory out.
@@ -560,6 +560,7 @@ http.createServer(async (req, res) => {
     if (wait) return json(res, 429, { error: 'one card at a time, try again in ' + wait + 's' },
       { 'Retry-After': wait });
     try {
+      makeRoom();                                    // before writing, not after it is too late
       const file = await CARDPNG.cardPng('http://127.0.0.1:' + PORT, a, stamp);
       const name = (c && c.handle ? c.handle : (cache.get(a).signals.ens || a.slice(0, 10)))
         .replace(/[^A-Za-z0-9_.-]/g, '');
@@ -903,6 +904,41 @@ function renderFailed(where, msg) {
   console.log('   restarting so it comes back; all state is on the volume.');
   console.log('');
   setTimeout(() => process.exit(1), 250);
+}
+
+// ⛔ THE CARD STORE HAS NO CEILING, AND A FULL VOLUME IS THE WORST FAILURE THIS THING HAS.
+// Every wallet anybody exports or shares leaves a ~300kB card behind for ever. The volume is
+// 433MB; drawing cards for 257 read-but-unsigned wallets in one test took 71MB of it. Once it is
+// full EVERY render fails while the cards already written serve perfectly, so writes break, reads
+// do not, and the site looks alive while it quietly stops gaining anything.
+//
+// ⛔ A SIGNED WALLET'S CARD IS NEVER EVICTED. That set is the board, it is small and bounded, and
+// losing one shows as a hole in the thing this whole exercise is for. Everything else is a
+// convenience that can be drawn again in two seconds, so the oldest of those go first.
+const MIN_FREE_MB = 90, FREE_TARGET_MB = 140;
+let evicted = 0;
+function freeMBnow() {
+  try { const t = fs.statfsSync(CARDPNG.OUT); return t.bavail * t.bsize / 1048576; }
+  catch { return Infinity; }                       // unknown headroom must never delete anything
+}
+function makeRoom() {
+  if (freeMBnow() >= MIN_FREE_MB) return;
+  const keep = new Set();
+  try { for (const r of CLAIMS.signedLatest()) keep.add(String(r.addr || '').toLowerCase()); } catch { return; }
+  if (!keep.size) return;                          // could not read the board: evict nothing
+  let files;
+  try { files = fs.readdirSync(CARDPNG.OUT)
+    .filter(f => /^0x[0-9a-f]{40}_/.test(f) && !keep.has(f.slice(0, 42)))
+    .map(f => { const p = path.join(CARDPNG.OUT, f);
+                try { return { p: p, t: fs.statSync(p).mtimeMs }; } catch { return null; } })
+    .filter(Boolean).sort((a, b) => a.t - b.t); } catch { return; }
+  let gone = 0;
+  for (const f of files) {
+    if (freeMBnow() >= FREE_TARGET_MB) break;
+    try { fs.unlinkSync(f.p); gone++; evicted++; } catch {}
+  }
+  if (gone) console.log('card store was low on room: removed ' + gone +
+    " unsigned wallets' cards, " + Math.round(freeMBnow()) + 'MB free now');
 }
 
 let preBusy = false, preDrawn = 0;
