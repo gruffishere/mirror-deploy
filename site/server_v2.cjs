@@ -330,6 +330,18 @@ const isOwnRenderer = req => {
   return a === '::1' || a.indexOf('127.') === 0 || a.indexOf('::ffff:127.') === 0;
 };
 
+// ⛔ THE RENDERER MUST NOT BE RATIONED AGAINST ITSELF.
+// Drawing one card is a headless browser that fetches /api/read and /api/art.svg back from this
+// same server over the loopback. Every one of those arrives from 127.0.0.1, so they all share ONE
+// bucket: 60 a minute, two per card, thirty cards a minute for the whole machine. During a mass
+// redraw after an art change, with the board also asking for missing cards, that bucket empties,
+// the renderer's own request comes back 429, the page it is photographing has no data, and the
+// card fails. Three failures and the wallet is given up on. Measured: cardsGivenUp went 0 to 45
+// during one redraw, with 'the renderer produced nothing usable' on four of twelve sampled cards.
+// ⚠️ SAFE because only this machine's own Chrome reaches the socket without an x-forwarded-for;
+// everything from outside arrives through Railway's edge, which always sets it.
+const rateLimit = (req, ip, kind) => isOwnRenderer(req) ? 0 : allow(ip, kind);
+
 const send = (res, code, body, type, extra) => {
   // ⚠️ CORS, because THE MIRROR is read from the FACETS site on another origin. Without it the fetch
   // is blocked by the browser and the failure looks like a dead API rather than a missing header.
@@ -532,7 +544,7 @@ http.createServer(async (req, res) => {
   }
 
   if (u.pathname === '/api/art.svg') {
-    const wait = allow(ip, 'any');
+    const wait = rateLimit(req, ip, 'any');
     if (wait) return json(res, 429, { error: 'too many requests' }, { 'Retry-After': wait });
     const a = String(u.searchParams.get('addr') || '').toLowerCase();
     const f = String(u.searchParams.get('facet') || '').toUpperCase();
@@ -686,7 +698,7 @@ http.createServer(async (req, res) => {
   }
 
   if (u.pathname === '/api/read') {
-    const wait = allow(ip, 'any');
+    const wait = rateLimit(req, ip, 'any');
     if (wait) return json(res, 429, { error: 'too many requests, try again in ' + wait + 's' }, { 'Retry-After': wait });
 
     let addr = (u.searchParams.get('addr') || '').trim();
